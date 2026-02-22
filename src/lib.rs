@@ -1,20 +1,29 @@
 use nih_plug::prelude::*;
 use std::sync::Arc;
 
+mod ring_buffer;
+
+const MAX_DELAY_TIME: f32 = 500.0;
+const DELAY_SCALE: f32 = 150.0;
+
 struct Ultracomb {
     params: Arc<UltracombParams>,
+    delay_buffers: Vec<ring_buffer::RingBuffer>,
 }
 
 #[derive(Params)]
 struct UltracombParams {
     #[id = "strength"]
     pub strength: FloatParam,
+    #[id = "odd"]
+    pub odd: FloatParam,
 }
 
 impl Default for Ultracomb {
     fn default() -> Self {
         Self {
             params: Arc::new(UltracombParams::default()),
+            delay_buffers: Default::default(),
         }
     }
 }
@@ -33,6 +42,17 @@ impl Default for UltracombParams {
             )
             .with_smoother(SmoothingStyle::Linear(10.0))
             .with_step_size(0.1),
+            odd: FloatParam::new(
+                "Odd",
+                0.0,
+                FloatRange::Skewed{
+                    min: 0.0,
+                    max: 1.0,
+                    factor: FloatRange::skew_factor(-1.0)
+                },
+            )
+            .with_smoother(SmoothingStyle::Linear(10.0))
+            .with_step_size(0.01),
         }
     }
 }
@@ -85,15 +105,24 @@ impl Plugin for Ultracomb {
         _buffer_config: &BufferConfig,
         _context: &mut impl InitContext<Self>,
     ) -> bool {
-        // Resize buffers and perform other potentially expensive initialization operations here.
-        // The `reset()` function is always called right after this function. You can remove this
-        // function if you do not need it.
+        let num_output_channels = _audio_io_layout
+            .main_output_channels
+            .expect("Plugin does not have a main output")
+            .get() as usize;
+        //Create ring buffers
+        self.delay_buffers = Vec::new();
+        for n in 0..num_output_channels{
+            let buffer = ring_buffer::RingBuffer::default();
+            self.delay_buffers.push(buffer);
+            self.delay_buffers[n].resize(_buffer_config.sample_rate, MAX_DELAY_TIME);
+        }
         true
     }
 
     fn reset(&mut self) {
-        // Reset buffers and envelopes here. This can be called from the audio thread and may not
-        // allocate. You can remove this function if you do not need it.
+        for buffer in self.delay_buffers.iter_mut(){
+            buffer.reset();
+        }
     }
 
     fn process(
@@ -102,15 +131,17 @@ impl Plugin for Ultracomb {
         _aux: &mut AuxiliaryBuffers,
         _context: &mut impl ProcessContext<Self>,
     ) -> ProcessStatus {
-        for channel_samples in buffer.iter_samples() {
-            // Smoothing is optionally built into the parameters themselves
-            let gain = self.params.strength.smoothed.next();
-
-            for sample in channel_samples {
-                *sample *= gain;
+        //Loop for each sample
+        buffer.samples();
+        for mut sample_per_channel in buffer.iter_samples() {
+            // Parameter smoothing happens per sample
+            let delay = self.params.odd.smoothed.next() * DELAY_SCALE;
+            //Loop for each channel
+            for (sample,delay_buffer) in sample_per_channel.iter_mut().zip(&mut self.delay_buffers){
+                delay_buffer.set_delay_ms(delay);
+                *sample = delay_buffer.process(*sample);
             }
         }
-
         ProcessStatus::Normal
     }
 }
