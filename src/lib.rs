@@ -130,7 +130,7 @@ impl Vst3Plugin for Ultracomb {
 
     // And also don't forget to change these categories
     const VST3_SUBCATEGORIES: &'static [Vst3SubCategory] =
-        &[Vst3SubCategory::Fx, Vst3SubCategory::Dynamics];
+        &[Vst3SubCategory::Fx, Vst3SubCategory::Modulation];
 }
 
 nih_export_clap!(Ultracomb);
