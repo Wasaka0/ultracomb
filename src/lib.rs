@@ -28,7 +28,7 @@ impl Default for UltracombParams {
                 FloatRange::Skewed{
                     min: 0.0,
                     max: 100.0,
-                    factor: -1.0,
+                    factor: FloatRange::skew_factor(-1.0)
                 },
             )
             .with_smoother(SmoothingStyle::Linear(10.0))
