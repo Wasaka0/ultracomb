@@ -2,9 +2,11 @@ use nih_plug::prelude::*;
 use std::sync::Arc;
 
 mod ring_buffer;
+mod audio_utility;
 
 const MAX_DELAY_TIME: f32 = 500.0;
 const DELAY_SCALE: f32 = 150.0;
+const STRRENGTH_SCALE: f32 = 0.005;
 
 struct Ultracomb {
     params: Arc<UltracombParams>,
@@ -33,7 +35,7 @@ impl Default for UltracombParams {
         Self {
             strength: FloatParam::new(
                 "Strength",
-                0.0,
+                100.0,
                 FloatRange::Skewed{
                     min: 0.0,
                     max: 100.0,
@@ -52,7 +54,7 @@ impl Default for UltracombParams {
                 },
             )
             .with_smoother(SmoothingStyle::Linear(10.0))
-            .with_step_size(0.01),
+            .with_step_size(0.001),
         }
     }
 }
@@ -132,14 +134,16 @@ impl Plugin for Ultracomb {
         _context: &mut impl ProcessContext<Self>,
     ) -> ProcessStatus {
         //Loop for each sample
-        buffer.samples();
         for mut sample_per_channel in buffer.iter_samples() {
             // Parameter smoothing happens per sample
             let delay = self.params.odd.smoothed.next() * DELAY_SCALE;
+            let strength = self.params.strength.smoothed.next() * STRRENGTH_SCALE;
             //Loop for each channel
             for (sample,delay_buffer) in sample_per_channel.iter_mut().zip(&mut self.delay_buffers){
                 delay_buffer.set_delay_ms(delay);
-                *sample = delay_buffer.process(*sample);
+                let dry = *sample;
+                let wet = delay_buffer.process(*sample);
+                *sample = audio_utility::process_linear_dry_wet(dry,wet,strength);
             }
         }
         ProcessStatus::Normal
