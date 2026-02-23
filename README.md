@@ -9,3 +9,14 @@ After installing [Rust](https://rustup.rs/), you can compile Ultracomb as follow
 ```shell
 cargo xtask bundle ultracomb --release
 ```
+
+## To-do
+- [ ] Audio processing
+    - [x] Flanging
+    - [ ] Phasing
+        - [ ] All pass filter
+    - [ ] Frequency Shifter
+        - [ ] Low pass filter
+        - [ ] Quadrature ocsillator
+- [ ] GUI
+- [ ] Plug-in parameter definition
