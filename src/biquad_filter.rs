@@ -11,3 +11,11 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see https://www.gnu.org/licenses/.
+
+// A biquad filter that provides multiple filter types 
+#[derive(Clone, Debug, Default)]
+pub struct BiquadFilter{
+}
+
+impl BiquadFilter {
+}
