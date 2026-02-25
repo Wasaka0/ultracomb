@@ -30,6 +30,15 @@ struct BiquadCoefficients{
     a1: f32,
     a2: f32
 }
+impl BiquadCoefficients {
+    pub fn identity(&mut self){
+        self.b0 = 1.0;
+        self.b1 = 0.0;
+        self.b2 = 0.0;
+        self.a1 = 0.0;
+        self.a2 = 0.0;
+    }
+}
 
 // Samples that need to be recalled during filtering process
 #[derive(Clone, Debug, Default)]
@@ -39,6 +48,15 @@ struct SampleStorage{
     y0: f32,
     y1: f32,
     y2: f32
+}
+impl SampleStorage {
+    pub fn reset(&mut self){
+        self.x1 = 0.0;
+        self.x2 = 0.0;
+        self.y0 = 0.0;
+        self.y1 = 0.0;
+        self.y2 = 0.0;
+    }
 }
 
 impl BiquadFilter {
@@ -51,6 +69,13 @@ impl BiquadFilter {
         self.samples.y1 = self.samples.y0;
         self.samples.y0
     }
+
+    //Resets the state of the filter
+    pub fn reset(&mut self) {
+        self.coefficients.identity();
+        self.samples.reset();
+    }
+
     //Calculates the coefficients for a low pass filter without checking for 
     //filter stability. This may produce unstable filter coefficients.
     pub fn low_pass(&mut self, sampling_frequency: f32, center_frequency: f32, Q: f32) {
