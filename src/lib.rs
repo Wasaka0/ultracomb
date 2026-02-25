@@ -17,6 +17,8 @@ use std::sync::Arc;
 
 mod ring_buffer;
 mod audio_utility;
+mod biquad_filter;
+mod frequency_shifter;
 
 const MAX_DELAY_TIME: f32 = 500.0;
 const DELAY_SCALE: f32 = 150.0;
@@ -25,6 +27,7 @@ const STRRENGTH_SCALE: f32 = 0.005;
 struct Ultracomb {
     params: Arc<UltracombParams>,
     delay_buffers: Vec<ring_buffer::RingBuffer>,
+    freq_shifters: Vec<frequency_shifter::FrequencyShifter>,
 }
 
 #[derive(Params)]
@@ -40,6 +43,7 @@ impl Default for Ultracomb {
         Self {
             params: Arc::new(UltracombParams::default()),
             delay_buffers: Default::default(),
+            freq_shifters: Default::default()
         }
     }
 }
@@ -127,10 +131,16 @@ impl Plugin for Ultracomb {
             .get() as usize;
         //Create ring buffers
         self.delay_buffers = Vec::new();
-        for n in 0..num_output_channels{
-            let buffer = ring_buffer::RingBuffer::default();
+        self.freq_shifters = Vec::new();
+        for _n in 0..num_output_channels{
+            // Initialize Ring Buffers
+            let mut buffer = ring_buffer::RingBuffer::default();
+            buffer.resize(_buffer_config.sample_rate, MAX_DELAY_TIME);
             self.delay_buffers.push(buffer);
-            self.delay_buffers[n].resize(_buffer_config.sample_rate, MAX_DELAY_TIME);
+            // Initialize Frequency Shifters 
+            let mut shifter = frequency_shifter::FrequencyShifter::default();
+            shifter.initialize(_buffer_config.sample_rate);
+            self.freq_shifters.push(shifter);
         }
         true
     }
@@ -153,10 +163,11 @@ impl Plugin for Ultracomb {
             let delay = self.params.odd.smoothed.next() * DELAY_SCALE;
             let strength = self.params.strength.smoothed.next() * STRRENGTH_SCALE;
             //Loop for each channel
-            for (sample,delay_buffer) in sample_per_channel.iter_mut().zip(&mut self.delay_buffers){
+            for ((sample,delay_buffer),shifter) in sample_per_channel.iter_mut().zip(self.delay_buffers.iter_mut()).zip(self.freq_shifters.iter_mut()){
                 delay_buffer.set_delay_ms(delay);
                 let dry = *sample;
                 let wet = delay_buffer.process(*sample);
+                let wet = shifter.process(wet);
                 *sample = audio_utility::process_linear_dry_wet(dry,wet,strength);
             }
         }
