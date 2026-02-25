@@ -39,4 +39,13 @@ struct SampleStorage{
     y2: f32
 }
 impl BiquadFilter {
+    //Process a single input sample returning the filter output
+    pub fn process(&mut self, sample: f32) -> f32 {
+        self.samples.y0 = self.coefficients.b0 * sample + self.coefficients.b1 * self.samples.x1 + self.coefficients.b2 * self.samples.x2 - self.coefficients.a1 * self.samples.y1 - self.coefficients.a2 * self.samples.y2;
+        self.samples.x2 = self.samples.x1;
+        self.samples.x1 = sample;
+        self.samples.y2 = self.samples.y1;
+        self.samples.y1 = self.samples.y0;
+        self.samples.y0
+    }
 }
