@@ -18,6 +18,7 @@ use std::sync::Arc;
 mod ring_buffer;
 mod audio_utility;
 mod biquad_filter;
+mod even_butterworth;
 mod frequency_shifter;
 
 const MAX_DELAY_TIME: f32 = 500.0;
@@ -36,6 +37,8 @@ struct UltracombParams {
     pub strength: FloatParam,
     #[id = "odd"]
     pub odd: FloatParam,
+    #[id = "freq"]
+    pub freq: FloatParam,
 }
 
 impl Default for Ultracomb {
@@ -73,6 +76,15 @@ impl Default for UltracombParams {
             )
             .with_smoother(SmoothingStyle::Linear(10.0))
             .with_step_size(0.001),
+            freq: FloatParam::new(
+                "Freq",
+                0.0,
+                FloatRange::Linear {
+                    min: -20.0,
+                    max: 20.0,
+                },
+            )
+            .with_smoother(SmoothingStyle::Linear(100.0))
         }
     }
 }
@@ -162,12 +174,14 @@ impl Plugin for Ultracomb {
             // Parameter smoothing happens per sample
             let delay = self.params.odd.smoothed.next() * DELAY_SCALE;
             let strength = self.params.strength.smoothed.next() * STRRENGTH_SCALE;
+            let freq = self.params.freq.smoothed.next();
             //Loop for each channel
             for ((sample,delay_buffer),shifter) in sample_per_channel.iter_mut().zip(self.delay_buffers.iter_mut()).zip(self.freq_shifters.iter_mut()){
                 delay_buffer.set_delay_ms(delay);
+                shifter.set_frequency(freq);
                 let dry = *sample;
-                let wet = delay_buffer.process(*sample);
-                let wet = shifter.process(wet);
+                let mut wet = delay_buffer.process(dry);
+                wet = shifter.process(wet);
                 *sample = audio_utility::process_linear_dry_wet(dry,wet,strength);
             }
         }
