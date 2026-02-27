@@ -12,13 +12,75 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see https://www.gnu.org/licenses/.
 
+use std::f32::consts;
+
 use crate::biquad_filter::BiquadFilter;
+
+// Reducing this will reduce oscillator artifacts at the cost of memory.
+const LUT_BASE_FREQ: f32 = 3.0;
+
 // A frequency shifter using the quadrature oscillator method  
 #[derive(Clone, Debug, Default)]
 pub struct FrequencyShifter{
     low_pass_filters: [BiquadFilter; 2],
     upper_sample: f32,
     lower_sample: f32,
+// An sine oscillator that provides two outputs with a difference of 90 degrees
+#[derive(Clone, Debug, Default)]
+pub struct QuadratureOscillator{
+    lut: Vec<f32>,
+    sin_index: usize,
+    cos_index: usize,
+    cos_offset: f32,
+    phase: f32,
+    step: f32,
+}
+
+impl QuadratureOscillator{
+    // Initilize the oscillator, filling the look-up table
+    pub fn initialize(&mut self, sample_rate: f32){
+        let base_period = 1.0 / LUT_BASE_FREQ;
+        let lut_length = (sample_rate * base_period).floor() as usize;
+        self.lut.resize(lut_length, 0.0);
+        // Fill LUT with one period of 20Hz sine wave
+        for i in 0..self.lut.len(){
+            let t = i as f32 / sample_rate;
+            self.lut[i] = (consts::TAU * LUT_BASE_FREQ * t).sin();
+        }
+
+        // Calculate cosine offset
+        self.cos_offset = (sample_rate * base_period) / 4.0;
+        
+        self.sin_index = 0;
+        self.cos_index = self.cos_offset.floor() as usize;
+        self.phase = 0.0;
+        self.step = 1.0;
+    }
+
+    // Returns the current sin and cos sample
+    pub fn next(&mut self) -> (f32,f32){
+        // Read sin and cos
+        let sin = self.lut[self.sin_index];
+        let cos = self.lut[self.cos_index];
+
+        // Advance phase
+        self.phase = self.phase + self.step;
+        if self.phase >= self.lut.len() as f32{
+            self.phase = self.phase - self.lut.len() as f32;
+        }
+        // Update indexes
+        self.sin_index = self.phase.floor() as usize;
+        self.cos_index = (self.phase + self.cos_offset).floor() as usize;
+        if self.cos_index >= self.lut.len(){
+            self.cos_index = self.cos_index - self.lut.len();
+        }
+        (sin,cos)
+    }
+
+    // Sets the oscillator frequency
+    pub fn set_frequency(&mut self, frequency: f32){
+        self.step = frequency / LUT_BASE_FREQ;
+    }
 }
 
 impl FrequencyShifter{
