@@ -78,9 +78,9 @@ impl BiquadFilter {
 
     //Calculates the coefficients for a low pass filter without checking for 
     //filter stability. This may produce unstable filter coefficients.
-    pub fn low_pass(&mut self, sampling_frequency: f32, center_frequency: f32, Q: f32) {
+    pub fn low_pass(&mut self, sampling_frequency: f32, center_frequency: f32, q: f32) {
         let w0 = consts::TAU * (center_frequency / sampling_frequency);
-        let alpha = w0.sin() / (2.0 * Q);
+        let alpha = w0.sin() / (2.0 * q);
         let cos_w0 = w0.cos();
         
         let a0 = 1.0 + alpha;
