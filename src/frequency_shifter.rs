@@ -121,10 +121,6 @@ impl FrequencyShifter{
         self.second_osc.set_frequency(self.freq_static_osc);
     }
 
-    //Resets the state of the frequency shifter
-    pub fn reset(&mut self) {
-    }
-
     pub fn set_frequency(&mut self, frequency: f32){
         self.second_osc.set_frequency(self.freq_static_osc + frequency);
     }
