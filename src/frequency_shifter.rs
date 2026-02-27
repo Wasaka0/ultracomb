@@ -25,6 +25,11 @@ pub struct FrequencyShifter{
     low_pass_filters: [BiquadFilter; 2],
     upper_sample: f32,
     lower_sample: f32,
+    first_osc: QuadratureOscillator,
+    second_osc: QuadratureOscillator,
+    freq_static_osc: f32
+}
+
 // An sine oscillator that provides two outputs with a difference of 90 degrees
 #[derive(Clone, Debug, Default)]
 pub struct QuadratureOscillator{
@@ -86,12 +91,20 @@ impl QuadratureOscillator{
 impl FrequencyShifter{
     //Process a single sample ruturning the output shifted in frequency 
     pub fn process(&mut self, sample: f32) -> f32 {
-        // Upper branch of the frequency shifter
-        self.upper_sample = self.low_pass_filters[0].process(sample);
-        // Lower branch of the frequency shifter
-        self.lower_sample = self.low_pass_filters[1].process(sample);
+        // Get quadrature samples
+        let (sin_1, cos_1) = self.first_osc.next();
+        let (sin_2, cos_2) = self.second_osc.next();
 
-        self.upper_sample
+        // Upper branch of the frequency shifter
+        self.upper_sample = sample * sin_1;
+        self.upper_sample = self.low_pass_filters[0].process(self.upper_sample);
+        self.upper_sample = self.upper_sample * sin_2;
+        // Lower branch of the frequency shifter
+        self.lower_sample = sample * cos_1;
+        self.lower_sample = self.low_pass_filters[1].process(self.lower_sample);
+        self.lower_sample = self.lower_sample * cos_2;
+
+        self.lower_sample + self.upper_sample
     }
 
     //Prepares the shifter by configuring its elements according to the given sample frequency
@@ -100,9 +113,18 @@ impl FrequencyShifter{
             filter.reset();
             filter.low_pass(sample_rate,sample_rate / 4.0,1.0);
         }
+
+        self.first_osc.initialize(sample_rate);
+        self.first_osc.set_frequency(self.freq_static_osc);
+        self.second_osc.initialize(sample_rate);
+        self.second_osc.set_frequency(self.freq_static_osc);
     }
 
     //Resets the state of the frequency shifter
     pub fn reset(&mut self) {
+    }
+
+    pub fn set_frequency(&mut self, frequency: f32){
+        self.second_osc.set_frequency(self.freq_static_osc + frequency);
     }
 }
