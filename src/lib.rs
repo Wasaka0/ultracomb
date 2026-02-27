@@ -27,7 +27,8 @@ const STRRENGTH_SCALE: f32 = 0.005;
 
 struct Ultracomb {
     params: Arc<UltracombParams>,
-    delay_buffers: Vec<ring_buffer::RingBuffer>,
+    wet_delay_buffers: Vec<ring_buffer::RingBuffer>,
+    dry_delay_buffers: Vec<ring_buffer::RingBuffer>,
     freq_shifters: Vec<frequency_shifter::FrequencyShifter>,
 }
 
@@ -37,6 +38,8 @@ struct UltracombParams {
     pub strength: FloatParam,
     #[id = "odd"]
     pub odd: FloatParam,
+    #[id = "chaos"]
+    pub chaos: FloatParam,
     #[id = "freq"]
     pub freq: FloatParam,
 }
@@ -45,7 +48,8 @@ impl Default for Ultracomb {
     fn default() -> Self {
         Self {
             params: Arc::new(UltracombParams::default()),
-            delay_buffers: Default::default(),
+            wet_delay_buffers: Default::default(),
+            dry_delay_buffers: Default::default(),
             freq_shifters: Default::default()
         }
     }
@@ -67,6 +71,17 @@ impl Default for UltracombParams {
             .with_step_size(0.1),
             odd: FloatParam::new(
                 "Odd",
+                0.0,
+                FloatRange::Skewed{
+                    min: 0.0,
+                    max: 1.0,
+                    factor: FloatRange::skew_factor(-1.0)
+                },
+            )
+            .with_smoother(SmoothingStyle::Linear(10.0))
+            .with_step_size(0.001),
+            chaos: FloatParam::new(
+                "Chaos",
                 0.0,
                 FloatRange::Skewed{
                     min: 0.0,
@@ -142,13 +157,17 @@ impl Plugin for Ultracomb {
             .expect("Plugin does not have a main output")
             .get() as usize;
         //Create ring buffers
-        self.delay_buffers = Vec::new();
+        self.wet_delay_buffers = Vec::new();
+        self.dry_delay_buffers = Vec::new();
         self.freq_shifters = Vec::new();
         for _n in 0..num_output_channels{
             // Initialize Ring Buffers
-            let mut buffer = ring_buffer::RingBuffer::default();
-            buffer.resize(_buffer_config.sample_rate, MAX_DELAY_TIME);
-            self.delay_buffers.push(buffer);
+            let mut wet = ring_buffer::RingBuffer::default();
+            wet.resize(_buffer_config.sample_rate, MAX_DELAY_TIME);
+            self.wet_delay_buffers.push(wet);
+            let mut dry = ring_buffer::RingBuffer::default();
+            dry.resize(_buffer_config.sample_rate, MAX_DELAY_TIME);
+            self.dry_delay_buffers.push(dry);
             // Initialize Frequency Shifters 
             let mut shifter = frequency_shifter::FrequencyShifter::default();
             shifter.initialize(_buffer_config.sample_rate);
@@ -158,7 +177,10 @@ impl Plugin for Ultracomb {
     }
 
     fn reset(&mut self) {
-        for buffer in self.delay_buffers.iter_mut(){
+        for buffer in self.wet_delay_buffers.iter_mut(){
+            buffer.reset();
+        }
+        for buffer in self.dry_delay_buffers.iter_mut(){
             buffer.reset();
         }
     }
@@ -172,17 +194,18 @@ impl Plugin for Ultracomb {
         //Loop for each sample
         for mut sample_per_channel in buffer.iter_samples() {
             // Parameter smoothing happens per sample
+            let dry_delay = self.params.chaos.smoothed.next() * DELAY_SCALE;
             let delay = self.params.odd.smoothed.next() * DELAY_SCALE;
             let strength = self.params.strength.smoothed.next() * STRRENGTH_SCALE;
             let freq = self.params.freq.smoothed.next();
             //Loop for each channel
-            for ((sample,delay_buffer),shifter) in sample_per_channel.iter_mut().zip(self.delay_buffers.iter_mut()).zip(self.freq_shifters.iter_mut()){
-                delay_buffer.set_delay_ms(delay);
+            for (((sample,wet_buffer),shifter),dry_buffer) in sample_per_channel.iter_mut().zip(self.wet_delay_buffers.iter_mut()).zip(self.freq_shifters.iter_mut()).zip(self.dry_delay_buffers.iter_mut()){
+                wet_buffer.set_delay_ms(delay);
+                dry_buffer.set_delay_ms(dry_delay);
                 shifter.set_frequency(freq);
-                let dry = *sample;
-                let mut wet = delay_buffer.process(dry);
+                let mut wet = wet_buffer.process(*sample);
                 wet = shifter.process(wet);
-                *sample = audio_utility::process_linear_dry_wet(dry,wet,strength);
+                *sample = audio_utility::process_linear_dry_wet(dry_buffer.process(*sample),wet,strength);
             }
         }
         ProcessStatus::Normal
