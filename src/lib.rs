@@ -23,6 +23,7 @@ mod frequency_shifter;
 
 const MAX_DELAY_TIME: f32 = 500.0;
 const STRRENGTH_SCALE: f32 = 0.005;
+const FREQ_SHIFT_SCALE: f32 = 0.05;
 
 struct Ultracomb {
     params: Arc<UltracombParams>,
@@ -94,8 +95,8 @@ impl Default for UltracombParams {
                 "Speed",
                 0.0,
                 FloatRange::Linear {
-                    min: -20.0,
-                    max: 20.0,
+                    min: -100.0,
+                    max: 100.0,
                 },
             )
             .with_smoother(SmoothingStyle::Linear(100.0))
@@ -196,7 +197,7 @@ impl Plugin for Ultracomb {
             let dry_delay = self.params.chaos.smoothed.next();
             let delay = self.params.flanging.smoothed.next();
             let strength = self.params.strength.smoothed.next() * STRRENGTH_SCALE;
-            let freq = self.params.speed.smoothed.next();
+            let freq = self.params.speed.smoothed.next() * FREQ_SHIFT_SCALE;
             //Loop for each channel
             for (((sample,wet_buffer),shifter),dry_buffer) in sample_per_channel.iter_mut().zip(self.wet_delay_buffers.iter_mut()).zip(self.freq_shifters.iter_mut()).zip(self.dry_delay_buffers.iter_mut()){
                 wet_buffer.set_delay_ms(delay);
