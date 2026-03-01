@@ -38,7 +38,7 @@ impl RingBuffer {
 
     //Change the read index to the given delay in milliseconds
     pub fn set_delay_ms(&mut self, new_delay: f32){
-        let delay_samples = (new_delay * self.sample_rate * 0.0001).trunc() as i32;
+        let delay_samples = (new_delay * self.sample_rate * 0.001).trunc() as i32;
         self.move_read_index(delay_samples);
     }
     //Calculates the read index from the desired delay in samples from the write index
