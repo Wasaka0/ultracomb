@@ -40,8 +40,8 @@ struct UltracombParams {
     pub flanging: FloatParam,
     #[id = "chaos"]
     pub chaos: FloatParam,
-    #[id = "freq"]
-    pub freq: FloatParam,
+    #[id = "speed"]
+    pub speed: FloatParam,
 }
 
 impl Default for Ultracomb {
@@ -91,8 +91,8 @@ impl Default for UltracombParams {
             )
             .with_smoother(SmoothingStyle::Linear(10.0))
             .with_step_size(0.001),
-            freq: FloatParam::new(
-                "Freq",
+            speed: FloatParam::new(
+                "Speed",
                 0.0,
                 FloatRange::Linear {
                     min: -20.0,
@@ -197,7 +197,7 @@ impl Plugin for Ultracomb {
             let dry_delay = self.params.chaos.smoothed.next() * DELAY_SCALE;
             let delay = self.params.flanging.smoothed.next() * DELAY_SCALE;
             let strength = self.params.strength.smoothed.next() * STRRENGTH_SCALE;
-            let freq = self.params.freq.smoothed.next();
+            let freq = self.params.speed.smoothed.next();
             //Loop for each channel
             for (((sample,wet_buffer),shifter),dry_buffer) in sample_per_channel.iter_mut().zip(self.wet_delay_buffers.iter_mut()).zip(self.freq_shifters.iter_mut()).zip(self.dry_delay_buffers.iter_mut()){
                 wet_buffer.set_delay_ms(delay);
