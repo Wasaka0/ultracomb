@@ -22,7 +22,6 @@ mod even_butterworth;
 mod frequency_shifter;
 
 const MAX_DELAY_TIME: f32 = 500.0;
-const DELAY_SCALE: f32 = 150.0;
 const STRRENGTH_SCALE: f32 = 0.005;
 
 struct Ultracomb {
@@ -74,22 +73,22 @@ impl Default for UltracombParams {
                 0.0,
                 FloatRange::Skewed{
                     min: 0.0,
-                    max: 1.0,
-                    factor: FloatRange::skew_factor(-1.0)
+                    max: 100.0,
+                    factor: FloatRange::skew_factor(-2.0)
                 },
             )
-            .with_smoother(SmoothingStyle::Linear(10.0))
+            .with_smoother(SmoothingStyle::Linear(50.0))
             .with_step_size(0.001),
             chaos: FloatParam::new(
                 "Chaos",
                 0.0,
                 FloatRange::Skewed{
                     min: 0.0,
-                    max: 1.0,
-                    factor: FloatRange::skew_factor(-1.0)
+                    max: 100.0,
+                    factor: FloatRange::skew_factor(-2.0)
                 },
             )
-            .with_smoother(SmoothingStyle::Linear(10.0))
+            .with_smoother(SmoothingStyle::Linear(50.0))
             .with_step_size(0.001),
             speed: FloatParam::new(
                 "Speed",
@@ -194,8 +193,8 @@ impl Plugin for Ultracomb {
         //Loop for each sample
         for mut sample_per_channel in buffer.iter_samples() {
             // Parameter smoothing happens per sample
-            let dry_delay = self.params.chaos.smoothed.next() * DELAY_SCALE;
-            let delay = self.params.flanging.smoothed.next() * DELAY_SCALE;
+            let dry_delay = self.params.chaos.smoothed.next();
+            let delay = self.params.flanging.smoothed.next();
             let strength = self.params.strength.smoothed.next() * STRRENGTH_SCALE;
             let freq = self.params.speed.smoothed.next();
             //Loop for each channel
