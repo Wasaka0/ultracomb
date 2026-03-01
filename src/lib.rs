@@ -36,8 +36,8 @@ struct Ultracomb {
 struct UltracombParams {
     #[id = "strength"]
     pub strength: FloatParam,
-    #[id = "odd"]
-    pub odd: FloatParam,
+    #[id = "flanging"]
+    pub flanging: FloatParam,
     #[id = "chaos"]
     pub chaos: FloatParam,
     #[id = "freq"]
@@ -69,8 +69,8 @@ impl Default for UltracombParams {
             )
             .with_smoother(SmoothingStyle::Linear(10.0))
             .with_step_size(0.1),
-            odd: FloatParam::new(
-                "Odd",
+            flanging: FloatParam::new(
+                "Flanging",
                 0.0,
                 FloatRange::Skewed{
                     min: 0.0,
@@ -195,7 +195,7 @@ impl Plugin for Ultracomb {
         for mut sample_per_channel in buffer.iter_samples() {
             // Parameter smoothing happens per sample
             let dry_delay = self.params.chaos.smoothed.next() * DELAY_SCALE;
-            let delay = self.params.odd.smoothed.next() * DELAY_SCALE;
+            let delay = self.params.flanging.smoothed.next() * DELAY_SCALE;
             let strength = self.params.strength.smoothed.next() * STRRENGTH_SCALE;
             let freq = self.params.freq.smoothed.next();
             //Loop for each channel
