@@ -14,7 +14,7 @@
 
 use std::f32::consts;
 
-use crate::even_butterworth;
+use crate::{biquad_filter, even_butterworth};
 
 // Reducing this will reduce oscillator artifacts at the cost of memory.
 const LUT_BASE_FREQ: f32 = 3.0;
@@ -133,7 +133,7 @@ impl FrequencyShifter{
         self.crossfade_position = 0;
         self.freq_static_osc = sample_rate * 0.25;
         for filter in &mut self.low_pass_filters{
-            filter.initialize(even_butterworth::Order::Sixth);
+            filter.initialize(biquad_filter::Order::Sixth);
             filter.low_pass(sample_rate,self.freq_static_osc);
         }
 

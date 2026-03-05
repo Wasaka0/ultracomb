@@ -93,4 +93,66 @@ impl BiquadFilter {
         let a2 = (1.0 - alpha) / a0;
         self.coefficients = BiquadCoefficients { b0, b1, b2, a1, a2};
     }
+#[derive(Clone,Debug, Default)]
+pub struct BiquadCascade{
+    biquads: Vec<BiquadFilter>,
+    sample: f32
 }
+
+#[derive(Clone, Copy, Debug, Default)]
+pub enum Order{
+    #[default]
+    Second,
+    Forth,
+    Sixth
+}
+
+impl BiquadCascade {
+    //Process a single input sample returning the filter output
+    pub fn process(&mut self, sample: f32) -> f32 {
+        self.sample = sample;
+        for filter in &mut self.biquads{
+            self.sample = filter.process(self.sample);
+        }
+        self.sample
+    }
+
+    //Resets the state of the filter
+    pub fn reset(&mut self) {
+        for filter in &mut self.biquads{
+            filter.coefficients.identity();
+            filter.samples.reset();
+        }
+        self.sample = 0.0;
+    }
+
+    pub fn initialize(&mut self, order: Order){
+        match order{
+            Order::Second => {
+                self.biquads = Vec::new();
+                self.biquads.push(BiquadFilter::default());
+            }
+            Order::Forth => {
+                self.biquads = Vec::new();
+                self.biquads.push(BiquadFilter::default());
+                self.biquads.push(BiquadFilter::default());
+            }
+            Order::Sixth => {
+                self.biquads = Vec::new();
+                self.biquads.push(BiquadFilter::default());
+                self.biquads.push(BiquadFilter::default());
+                self.biquads.push(BiquadFilter::default());
+            }
+        }
+    }
+
+    // Calculates the coefficients for a low pass filter cascade all with the same cut-off frequency
+    // but with individual q. Size of vector q must at least half the order given at initialize.
+    pub fn low_pass(&mut self, sampling_frequency: f32, center_frequency: f32, q: Vec<f32>) {
+        for (filter, q) in self.biquads.iter_mut().zip(q){
+            filter.reset();
+            filter.low_pass(sampling_frequency, center_frequency, q);
+        }
+    }
+
+
