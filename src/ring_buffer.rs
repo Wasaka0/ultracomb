@@ -22,6 +22,9 @@ pub struct RingBuffer{
     audio_buffer: Vec<f32>,
     read_index: usize,
     write_index: usize,
+    last_read: f32,
+    now_ratio: f32,
+    prev_sample_ratio: f32
 }
 
 impl RingBuffer {
@@ -38,8 +41,10 @@ impl RingBuffer {
 
     //Change the read index to the given delay in milliseconds
     pub fn set_delay_ms(&mut self, new_delay: f32){
-        let delay_samples = (new_delay * self.sample_rate * 0.001).trunc() as i32;
-        self.move_read_index(delay_samples);
+        let delay_samples = new_delay * self.sample_rate * 0.001;
+        self.prev_sample_ratio = delay_samples.fract();
+        self.now_ratio = 1.0 - self.prev_sample_ratio;
+        self.move_read_index(delay_samples.trunc() as i32);
     }
     //Calculates the read index from the desired delay in samples from the write index
     fn move_read_index(&mut self, mut delay: i32){
@@ -68,7 +73,8 @@ impl RingBuffer {
     
     /// Rerturn current delayed sample.
     fn next_sample(&mut self) -> f32 {
-        let result = self.audio_buffer[self.read_index];
+        let result = self.now_ratio * self.audio_buffer[self.read_index] + self.prev_sample_ratio * self.last_read;
+        self.last_read = self.audio_buffer[self.read_index];
         self.read_index = self.advance_index(self.read_index);
         result
     }
@@ -88,5 +94,6 @@ impl RingBuffer {
         self.write_index = 0;
         self.move_read_index(0);
         self.audio_buffer.fill(0.0);
+        self.last_read = 0.0;
     }
 }
