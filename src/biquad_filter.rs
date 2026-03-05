@@ -93,6 +93,25 @@ impl BiquadFilter {
         let a2 = (1.0 - alpha) / a0;
         self.coefficients = BiquadCoefficients { b0, b1, b2, a1, a2};
     }
+
+    //Calculates the coefficients for an all pass filter.
+    pub fn all_pass(&mut self, sampling_frequency: f32, center_frequency: f32, q: f32) {
+        let w0 = consts::TAU * (center_frequency / sampling_frequency);
+        let alpha = w0.sin() / (2.0 * q);
+        let cos_w0 = w0.cos();
+        
+        let a0 = 1.0 + alpha;
+        
+        let b0 = (1.0 - alpha) / a0;
+        let b1 = (-2.0 * cos_w0) / a0;
+        let b2 = 1.0;
+        
+        let a1 = b1;
+        let a2 = b0;
+        self.coefficients = BiquadCoefficients { b0, b1, b2, a1, a2};
+    }
+}
+
 #[derive(Clone,Debug, Default)]
 pub struct BiquadCascade{
     biquads: Vec<BiquadFilter>,
@@ -155,4 +174,11 @@ impl BiquadCascade {
         }
     }
 
+    //Calculates the coefficients for an all pass filter. This may produce unstable filter coefficients.
+    pub fn all_pass(&mut self, sampling_frequency: f32, center_frequency: f32, q: f32) {
+        for filter in self.biquads.iter_mut(){
+            filter.all_pass(sampling_frequency, center_frequency, q);
+        }
+    }
+}
 
