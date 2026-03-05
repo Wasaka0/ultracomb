@@ -47,6 +47,7 @@ impl EvenButterworth{
             biquad_filter::Order::Sixth => {
                 return vec![0.51763809, 0.70710678, 1.9318517];
             }
+            biquad_filter::Order::Thirty => todo!()
         }
     }
 

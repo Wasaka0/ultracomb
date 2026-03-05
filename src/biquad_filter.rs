@@ -123,7 +123,8 @@ pub enum Order{
     #[default]
     Second,
     Forth,
-    Sixth
+    Sixth,
+    Thirty
 }
 
 impl BiquadCascade {
@@ -155,6 +156,9 @@ impl BiquadCascade {
             }
             Order::Sixth => {
                 3
+            }
+            Order::Thirty => {
+                15
             }
         };
         self.biquads = Vec::new();
