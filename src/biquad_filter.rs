@@ -127,22 +127,22 @@ impl BiquadCascade {
     }
 
     pub fn initialize(&mut self, order: Order){
-        match order{
+        let n = match order{
             Order::Second => {
-                self.biquads = Vec::new();
-                self.biquads.push(BiquadFilter::default());
+                1
             }
             Order::Forth => {
-                self.biquads = Vec::new();
-                self.biquads.push(BiquadFilter::default());
-                self.biquads.push(BiquadFilter::default());
+                2
             }
             Order::Sixth => {
-                self.biquads = Vec::new();
-                self.biquads.push(BiquadFilter::default());
-                self.biquads.push(BiquadFilter::default());
-                self.biquads.push(BiquadFilter::default());
+                3
             }
+        };
+        self.biquads = Vec::new();
+        for _i in 0..n{
+            let mut filter = BiquadFilter::default();
+            filter.reset();
+            self.biquads.push(filter);
         }
     }
 
