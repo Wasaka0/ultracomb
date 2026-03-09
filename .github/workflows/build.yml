@@ -18,10 +18,11 @@ jobs:
     - uses: actions/checkout@v4
     - name: Build
       run: cargo xtask bundle ultracomb --release
+    - run: mkdir -p plug-in
+    - run: cp target/bundled/**/*.clap plug-in
+    - run: cp target/bundled/**/*.vst3 plug-in
     - uses: actions/upload-artifact@v6
       with:
         name: windows
-        path: |
-          target/bundled/**/*.clap
-          target/bundled/**/*.vst3
+        path: plug-in
         if-no-files-found: error
