@@ -21,5 +21,10 @@ cargo xtask bundle ultracomb --release
         - [x] Quadrature oscillator
         - [x] Fade-in and out
         - [ ] Try other frequency shifting methods e.g. Hilbert Filter
+- [ ] CD
+    - [x] Windows
+    - [ ] Linux
+    - [ ] MacOS
+    - [ ] Releases
 - [ ] GUI
 - [ ] Plug-in parameter definition
