@@ -16,3 +16,9 @@ inharmonics (Maybe resonance) - All-pass effect
 speed - frequency shift -100/100
 chaos - dry delay 0/70
 strength - dry/wet
+
+## Sources
+### Frequency shifter (Single-sideband modulation)
+#### The third method for Frequency shifting
+[Source describing digital approach] (https://csoundjournal.com/ezine/summer2000/processing/index.html)
+[Original paper that details signal processing] (https://ieeexplore.ieee.org/document/4051946)
