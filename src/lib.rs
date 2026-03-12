@@ -13,8 +13,10 @@
 // along with this program. If not, see https://www.gnu.org/licenses/.
 
 use nih_plug::prelude::*;
+use nih_plug_vizia::ViziaState;
 use std::sync::Arc;
 
+mod editor;
 mod ring_buffer;
 mod audio_utility;
 mod biquad_filter;
@@ -33,7 +35,8 @@ struct Ultracomb {
     wet_delay_buffers: Vec<ring_buffer::RingBuffer>,
     dry_delay_buffers: Vec<ring_buffer::RingBuffer>,
     freq_shifters: Vec<frequency_shifter::FrequencyShifter>,
-    sampling_frequency: f32
+    sampling_frequency: f32,
+    editor_state: Arc<ViziaState>
 }
 
 #[derive(Params)]
@@ -58,7 +61,8 @@ impl Default for Ultracomb {
             wet_delay_buffers: Default::default(),
             dry_delay_buffers: Default::default(),
             freq_shifters: Default::default(),
-            sampling_frequency: Default::default()
+            sampling_frequency: Default::default(),
+            editor_state: editor::default_state()
         }
     }
 }
@@ -83,7 +87,7 @@ impl Default for UltracombParams {
                 FloatRange::Skewed{
                     min: 0.0,
                     max: 1.0,
-                    factor: FloatRange::skew_factor(2.0)
+                    factor: FloatRange::skew_factor(-2.5)
                 },
             )
             .with_smoother(SmoothingStyle::Linear(150.0)),
@@ -162,6 +166,13 @@ impl Plugin for Ultracomb {
 
     fn params(&self) -> Arc<dyn Params> {
         self.params.clone()
+    }
+
+    fn editor(&mut self, _async_executor: AsyncExecutor<Self>) -> Option<Box<dyn Editor>> {
+        editor::create(
+            self.params.clone(),
+                self.editor_state.clone(),
+        )
     }
 
     fn initialize(
