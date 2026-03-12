@@ -26,5 +26,6 @@ cargo xtask bundle ultracomb --release
     - [ ] Linux
     - [ ] MacOS
     - [ ] Releases
-- [ ] GUI
+- [x] GUI
+    - [ ] Add knobs instead of sliders
 - [ ] Plug-in parameter definition
