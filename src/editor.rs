@@ -71,5 +71,6 @@ pub(crate) fn create(
             .child_left(Stretch(1.0))
             .child_right(Stretch(1.0));
         }).class("background-main");
+        ResizeHandle::new(cx);
     })
 }
