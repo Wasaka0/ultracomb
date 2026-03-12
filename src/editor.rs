@@ -24,16 +24,28 @@ pub(crate) fn create(
 ) -> Option<Box<dyn Editor>> {
     create_vizia_editor(editor_state, ViziaTheming::Custom, move |cx, _| {
         assets::register_noto_sans_regular(cx);
+        assets::register_noto_sans_bold(cx);
         Data {
             params: params.clone(),
         }
         .build(cx);
-        Label::new(cx, "Ultracomb")
-            .font_family(vec![FamilyOwned::Name(String::from(assets::NOTO_SANS))])
-            .font_weight(FontWeightKeyword::Regular)
-            .font_size(20.0)
-            .child_top(Stretch(1.0))
-            .child_bottom(Pixels(0.0));
+        // UI Elements
+        // Top Text
+        HStack::new(cx, |cx|{
+            Label::new(cx, "Ultracomb")
+                .font_family(vec![FamilyOwned::Name(String::from(assets::NOTO_SANS))])
+                .font_weight(FontWeightKeyword::Bold)
+                .font_size(25.0)
+                .child_left(Pixels(7.0));
+            Label::new(cx, env!("CARGO_PKG_VERSION"))
+                .font_family(vec![FamilyOwned::Name(String::from(assets::NOTO_SANS))])
+                .font_weight(FontWeightKeyword::Regular)
+                .font_size(15.0)
+                .top(Stretch(1.0));
+        }).height(Stretch(0.2))
+        .col_between(Pixels(5.0))
+        .child_bottom(Pixels(5.0));
+        // Sliders
         HStack::new(cx, |cx|{
             VStack::new(cx, |cx| {
                 Label::new(cx, "Flanger");
