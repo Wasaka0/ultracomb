@@ -29,6 +29,8 @@ pub(crate) fn create(
             params: params.clone(),
         }
         .build(cx);
+        // AFAIK this should never fail on runtime. 
+        cx.add_stylesheet(include_style!("src/style.css")).expect("Style sheet could not be opened");
         // UI Elements
         // Top Text
         HStack::new(cx, |cx|{
@@ -44,7 +46,8 @@ pub(crate) fn create(
                 .top(Stretch(1.0));
         }).height(Stretch(0.2))
         .col_between(Pixels(5.0))
-        .child_bottom(Pixels(5.0));
+        .child_bottom(Pixels(5.0))
+        .class("background-banner");
         // Sliders
         HStack::new(cx, |cx|{
             VStack::new(cx, |cx| {
@@ -67,6 +70,6 @@ pub(crate) fn create(
             .row_between(Pixels(1.0))
             .child_left(Stretch(1.0))
             .child_right(Stretch(1.0));
-        });
+        }).class("background-main");
     })
 }
