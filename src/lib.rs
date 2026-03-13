@@ -80,7 +80,8 @@ impl Default for UltracombParams {
                 },
             )
             .with_smoother(SmoothingStyle::Linear(10.0))
-            .with_step_size(0.1),
+            .with_step_size(0.1)
+            .with_unit(" %"),
             phasing: FloatParam::new(
                 "Phasing",
                 0.0,
@@ -90,7 +91,8 @@ impl Default for UltracombParams {
                     factor: FloatRange::skew_factor(-2.5)
                 },
             )
-            .with_smoother(SmoothingStyle::Linear(150.0)),
+            .with_smoother(SmoothingStyle::Linear(150.0))
+            .with_unit(" %"),
             flanging: FloatParam::new(
                 "Flanging",
                 0.0,
@@ -101,7 +103,8 @@ impl Default for UltracombParams {
                 },
             )
             .with_smoother(SmoothingStyle::Linear(50.0))
-            .with_step_size(0.001),
+            .with_step_size(0.001)
+            .with_unit(" ms"),
             chaos: FloatParam::new(
                 "Chaos",
                 0.0,
@@ -112,7 +115,8 @@ impl Default for UltracombParams {
                 },
             )
             .with_smoother(SmoothingStyle::Linear(50.0))
-            .with_step_size(0.001),
+            .with_step_size(0.001)
+            .with_unit(" ms"),
             speed: FloatParam::new(
                 "Speed",
                 0.0,
@@ -121,7 +125,9 @@ impl Default for UltracombParams {
                     max: 100.0,
                 },
             )
+            .with_step_size(0.1)
             .with_smoother(SmoothingStyle::Linear(100.0))
+            .with_unit(" Hz")
         }
     }
 }
