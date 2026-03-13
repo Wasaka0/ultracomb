@@ -13,8 +13,10 @@
 // along with this program. If not, see https://www.gnu.org/licenses/.
 
 use nih_plug::prelude::*;
+use nih_plug_vizia::ViziaState;
 use std::sync::Arc;
 
+mod editor;
 mod ring_buffer;
 mod audio_utility;
 mod biquad_filter;
@@ -24,8 +26,6 @@ mod frequency_shifter;
 const MAX_DELAY_TIME: f32 = 500.0;
 const STRRENGTH_SCALE: f32 = 0.005;
 const FREQ_SHIFT_SCALE: f32 = 0.05;
-const PHASE_FREQ_SCALE: f32 = 20000.0;
-const PHASE_Q_SCALE: f32 = 30.0;
 
 struct Ultracomb {
     params: Arc<UltracombParams>,
@@ -33,7 +33,8 @@ struct Ultracomb {
     wet_delay_buffers: Vec<ring_buffer::RingBuffer>,
     dry_delay_buffers: Vec<ring_buffer::RingBuffer>,
     freq_shifters: Vec<frequency_shifter::FrequencyShifter>,
-    sampling_frequency: f32
+    sampling_frequency: f32,
+    editor_state: Arc<ViziaState>
 }
 
 #[derive(Params)]
@@ -58,7 +59,8 @@ impl Default for Ultracomb {
             wet_delay_buffers: Default::default(),
             dry_delay_buffers: Default::default(),
             freq_shifters: Default::default(),
-            sampling_frequency: Default::default()
+            sampling_frequency: Default::default(),
+            editor_state: editor::default_state()
         }
     }
 }
@@ -76,17 +78,20 @@ impl Default for UltracombParams {
                 },
             )
             .with_smoother(SmoothingStyle::Linear(10.0))
-            .with_step_size(0.1),
+            .with_step_size(0.1)
+            .with_unit(" %"),
             phasing: FloatParam::new(
                 "Phasing",
                 0.0,
                 FloatRange::Skewed{
                     min: 0.0,
-                    max: 1.0,
-                    factor: FloatRange::skew_factor(2.0)
+                    max: 100.0,
+                    factor: FloatRange::skew_factor(0.0)
                 },
             )
-            .with_smoother(SmoothingStyle::Linear(150.0)),
+            .with_smoother(SmoothingStyle::Linear(150.0))
+            .with_value_to_string(formatters::v2s_f32_rounded(2))
+            .with_unit(" %"),
             flanging: FloatParam::new(
                 "Flanging",
                 0.0,
@@ -97,7 +102,8 @@ impl Default for UltracombParams {
                 },
             )
             .with_smoother(SmoothingStyle::Linear(50.0))
-            .with_step_size(0.001),
+            .with_step_size(0.001)
+            .with_unit(" ms"),
             chaos: FloatParam::new(
                 "Chaos",
                 0.0,
@@ -108,7 +114,8 @@ impl Default for UltracombParams {
                 },
             )
             .with_smoother(SmoothingStyle::Linear(50.0))
-            .with_step_size(0.001),
+            .with_step_size(0.001)
+            .with_unit(" ms"),
             speed: FloatParam::new(
                 "Speed",
                 0.0,
@@ -117,7 +124,9 @@ impl Default for UltracombParams {
                     max: 100.0,
                 },
             )
+            .with_step_size(0.1)
             .with_smoother(SmoothingStyle::Linear(100.0))
+            .with_unit(" Hz")
         }
     }
 }
@@ -162,6 +171,13 @@ impl Plugin for Ultracomb {
 
     fn params(&self) -> Arc<dyn Params> {
         self.params.clone()
+    }
+
+    fn editor(&mut self, _async_executor: AsyncExecutor<Self>) -> Option<Box<dyn Editor>> {
+        editor::create(
+            self.params.clone(),
+                self.editor_state.clone(),
+        )
     }
 
     fn initialize(
@@ -219,9 +235,9 @@ impl Plugin for Ultracomb {
             // Parameter smoothing happens per sample
             let dry_delay = self.params.chaos.smoothed.next();
             let delay = self.params.flanging.smoothed.next();
-            let phase = self.params.phasing.smoothed.next().sqrt();
-            let phase_freq = 20050.0 - phase * PHASE_FREQ_SCALE;
-            let phase_q = 30.05 - phase * PHASE_Q_SCALE;
+            let phase = self.params.phasing.smoothed.next();
+            let phase_freq = if phase < 10.0 {20000.0 - 1000.0 * phase} else if phase < 40.0 { 10000.0 - (phase - 10.0) * 300.0} else {1000.0 - (phase - 40.0) * 15.0};
+            let phase_q = if phase < 10.0 {30.0 - 2.5 * phase} else if phase < 50.0 {5.0 - (phase - 10.0) * 0.075} else if phase < 70.0 { 2.0 - (phase - 50.0) * 0.05} else {1.0 - (phase - 70.0) * 0.0323};
             let strength = self.params.strength.smoothed.next() * STRRENGTH_SCALE;
             let freq_shift = self.params.speed.smoothed.next() * FREQ_SHIFT_SCALE;
             //Loop for each channel
