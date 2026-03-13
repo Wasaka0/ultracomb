@@ -16,11 +16,13 @@ cargo xtask bundle ultracomb --release
         - [x] Interpolation for delays between samples
     - [x] Phasing
         - [x] All pass filter
+        - [ ] Variable number of notches
     - [x] Frequency Shifter
         - [x] Low pass filter
         - [x] Quadrature oscillator
         - [x] Fade-in and out
         - [ ] Try other frequency shifting methods e.g. Hilbert Filter
+    - [ ] Gain compensation
 - [ ] CD
     - [x] Windows
     - [ ] Linux
@@ -29,3 +31,5 @@ cargo xtask bundle ultracomb --release
 - [x] GUI
     - [ ] Add knobs instead of sliders
 - [ ] Plug-in parameter definition
+    - [ ] Define parameter ranges
+    - [ ] Add parameter descriptions to ReadMe
