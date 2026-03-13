@@ -26,8 +26,6 @@ mod frequency_shifter;
 const MAX_DELAY_TIME: f32 = 500.0;
 const STRRENGTH_SCALE: f32 = 0.005;
 const FREQ_SHIFT_SCALE: f32 = 0.05;
-const PHASE_FREQ_SCALE: f32 = 20000.0;
-const PHASE_Q_SCALE: f32 = 30.0;
 
 struct Ultracomb {
     params: Arc<UltracombParams>,
@@ -87,11 +85,12 @@ impl Default for UltracombParams {
                 0.0,
                 FloatRange::Skewed{
                     min: 0.0,
-                    max: 1.0,
-                    factor: FloatRange::skew_factor(-2.5)
+                    max: 100.0,
+                    factor: FloatRange::skew_factor(0.0)
                 },
             )
             .with_smoother(SmoothingStyle::Linear(150.0))
+            .with_value_to_string(formatters::v2s_f32_rounded(2))
             .with_unit(" %"),
             flanging: FloatParam::new(
                 "Flanging",
@@ -236,9 +235,9 @@ impl Plugin for Ultracomb {
             // Parameter smoothing happens per sample
             let dry_delay = self.params.chaos.smoothed.next();
             let delay = self.params.flanging.smoothed.next();
-            let phase = self.params.phasing.smoothed.next().sqrt();
-            let phase_freq = 20050.0 - phase * PHASE_FREQ_SCALE;
-            let phase_q = 30.05 - phase * PHASE_Q_SCALE;
+            let phase = self.params.phasing.smoothed.next();
+            let phase_freq = if phase < 10.0 {20000.0 - 1000.0 * phase} else if phase < 40.0 { 10000.0 - (phase - 10.0) * 300.0} else {1000.0 - (phase - 40.0) * 15.0};
+            let phase_q = if phase < 10.0 {30.0 - 2.5 * phase} else if phase < 50.0 {5.0 - (phase - 10.0) * 0.075} else if phase < 70.0 { 2.0 - (phase - 50.0) * 0.05} else {1.0 - (phase - 70.0) * 0.0323};
             let strength = self.params.strength.smoothed.next() * STRRENGTH_SCALE;
             let freq_shift = self.params.speed.smoothed.next() * FREQ_SHIFT_SCALE;
             //Loop for each channel
