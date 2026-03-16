@@ -57,6 +57,6 @@ jobs:
     - run: cp ./target/bundled/**/*.vst3 plug-in
     - uses: actions/upload-artifact@v6
       with:
-        name: windows
+        name: macos
         path: plug-in
         if-no-files-found: error
