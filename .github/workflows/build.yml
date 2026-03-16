@@ -36,8 +36,8 @@ jobs:
     - name: Build-Linux
       run: cargo xtask bundle ultracomb --release
     - run: mkdir -p plug-in
-    - run: cp .\target\bundled\*.clap plug-in
-    - run: cp .\target\bundled\*.vst3\Contents\x86_64-win\*.vst3 plug-in
+    - run: cp ./target/bundled/*.clap plug-in
+    - run: cp ./target/bundled/**/*.vst3 plug-in
     - uses: actions/upload-artifact@v6
       with:
         name: linux
@@ -53,8 +53,8 @@ jobs:
     - name: Build-MacOS
       run: cargo xtask bundle ultracomb --release
     - run: mkdir -p plug-in
-    - run: copy .\target\bundled\*.clap plug-in
-    - run: copy .\target\bundled\*.vst3\Contents\x86_64-win\*.vst3 plug-in
+    - run: cp ./target/bundled/*.clap plug-in
+    - run: cp ./target/bundled/**/*.vst3 plug-in
     - uses: actions/upload-artifact@v6
       with:
         name: windows
