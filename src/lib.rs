@@ -237,7 +237,7 @@ impl Plugin for Ultracomb {
             let dry_delay = self.params.chaos.smoothed.next();
             let delay = self.params.flanging.smoothed.next();
             let phase = self.params.phasing.smoothed.next();
-            let phase_freq = if phase < 10.0 {20000.0 - 1000.0 * phase} else if phase < 40.0 { 10000.0 - (phase - 10.0) * 300.0} else {1000.0 - (phase - 40.0) * 15.0};
+            let phase_freq = if phase < 10.0 {20000.0 - 1000.0 * phase} else if phase < 30.0 { 10000.0 - (phase - 10.0) * 250.0} else if phase < 70.0 { 5000.0 - (phase - 30.0) * 100.0}  else {1000.0 - (phase - 70.0) * 30.0};
             let phase_q = if phase < 10.0 {30.0 - 2.5 * phase} else if phase < 50.0 {5.0 - (phase - 10.0) * 0.075} else if phase < 70.0 { 2.0 - (phase - 50.0) * 0.05} else {1.0 - (phase - 70.0) * 0.0323};
             let strength = self.params.strength.smoothed.next() * STRRENGTH_SCALE;
             let freq_shift = self.params.speed.smoothed.next() * FREQ_SHIFT_SCALE;
