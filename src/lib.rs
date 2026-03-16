@@ -23,8 +23,9 @@ mod biquad_filter;
 mod even_butterworth;
 mod frequency_shifter;
 
-const MAX_DELAY_TIME: f32 = 500.0;
+const MAX_DELAY_TIME: f32 = 30.0;
 const STRRENGTH_SCALE: f32 = 0.005;
+const DELAY_SCALE: f32 = 30.0;
 const FREQ_SHIFT_SCALE: f32 = 0.05;
 
 struct Ultracomb {
@@ -89,7 +90,7 @@ impl Default for UltracombParams {
                     factor: FloatRange::skew_factor(0.0)
                 },
             )
-            .with_smoother(SmoothingStyle::Linear(150.0))
+            .with_smoother(SmoothingStyle::Linear(50.0))
             .with_value_to_string(formatters::v2s_f32_rounded(2))
             .with_unit(" %"),
             flanging: FloatParam::new(
@@ -97,24 +98,24 @@ impl Default for UltracombParams {
                 0.0,
                 FloatRange::Skewed{
                     min: 0.0,
-                    max: 100.0,
-                    factor: FloatRange::skew_factor(-2.0)
+                    max: DELAY_SCALE,
+                    factor: FloatRange::skew_factor(-1.5)
                 },
             )
-            .with_smoother(SmoothingStyle::Linear(50.0))
-            .with_step_size(0.001)
+            .with_smoother(SmoothingStyle::Linear(100.0))
+            .with_value_to_string(formatters::v2s_f32_rounded(3))
             .with_unit(" ms"),
             chaos: FloatParam::new(
                 "Chaos",
                 0.0,
                 FloatRange::Skewed{
                     min: 0.0,
-                    max: 100.0,
-                    factor: FloatRange::skew_factor(-2.0)
+                    max: DELAY_SCALE,
+                    factor: FloatRange::skew_factor(-1.5)
                 },
             )
-            .with_smoother(SmoothingStyle::Linear(50.0))
-            .with_step_size(0.001)
+            .with_smoother(SmoothingStyle::Linear(100.0))
+            .with_value_to_string(formatters::v2s_f32_rounded(3))
             .with_unit(" ms"),
             speed: FloatParam::new(
                 "Speed",

@@ -53,7 +53,7 @@ pub(crate) fn create(
             VStack::new(cx, |cx| {
                 Label::new(cx, "Flanger");
                 ParamSlider::new(cx, Data::params, |params| &params.flanging);
-                Label::new(cx, "Chaos");
+                Label::new(cx, "Dry Delay (Chaos)");
                 ParamSlider::new(cx, Data::params, |params| &params.chaos);
                 Label::new(cx, "Phaser");
                 ParamSlider::new(cx, Data::params, |params| &params.phasing);
