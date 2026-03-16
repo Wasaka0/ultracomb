@@ -33,10 +33,11 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Build-Linux
+    - name: Install dependencies
       run: |
           sudo apt-get update
           sudo apt-get install -y libgl-dev libx11-xcb-dev
+    - name: Build-Linux
       run: cargo xtask bundle ultracomb --release
     - run: mkdir -p plug-in
     - run: cp ./target/bundled/*.clap plug-in
