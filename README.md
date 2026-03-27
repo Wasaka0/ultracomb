@@ -9,6 +9,10 @@ The block diagram for the effect looks like this:
 The phaser has 15 notches (all-pass filter of order 30)
 The frequency shifter is implemented using "The third method" discover by Donald k. Weaver.
 
+## Download
+You can find CLAP and VST3 binaries for Linux Mac and Windows in the releases page.
+Latest version: 0.1.0 [link](https://github.com/Wasaka0/ultracomb/releases/tag/0.1.0)
+
 ## Building
 
 After installing [Rust](https://rustup.rs/), you can compile Ultracomb as follows:
