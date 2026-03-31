@@ -13,7 +13,7 @@
 // along with this program. If not, see https://www.gnu.org/licenses/.
 
 use nih_plug::prelude::*;
-use nih_plug_vizia::ViziaState;
+use vizia_plug::ViziaState;
 use std::sync::Arc;
 
 mod editor;
