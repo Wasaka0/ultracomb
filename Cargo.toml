@@ -20,6 +20,7 @@ crate-type = ["cdylib"]
 # nih_plug_vizia = { git = "https://github.com/Wasaka0/nih-plug.git", branch = "update-baseview"}
 nih_plug = { git = "https://github.com/robbert-vdh/nih-plug.git"}
 vizia_plug = { git = "https://github.com/Wasaka0/vizia-plug.git", branch = "fix-peakmeter"}
+bitflags = "2.11.0"
 
 [profile.release]
 lto = "thin"
