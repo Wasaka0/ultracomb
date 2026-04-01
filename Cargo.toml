@@ -19,7 +19,7 @@ crate-type = ["cdylib"]
 # nih_plug = { git = "https://github.com/Wasaka0/nih-plug.git", features = ["assert_process_allocs"], branch = "update-baseview"}
 # nih_plug_vizia = { git = "https://github.com/Wasaka0/nih-plug.git", branch = "update-baseview"}
 nih_plug = { git = "https://github.com/robbert-vdh/nih-plug.git"}
-vizia_plug = { git = "https://github.com/Wasaka0/vizia-plug.git", branch = "fix-peakmeter"}
+vizia_plug = { git = "https://github.com/Wasaka0/vizia-plug.git", branch = "nih-plug-hack"}
 bitflags = "2.11.0"
 
 [profile.release]
