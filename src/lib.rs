@@ -17,11 +17,9 @@ use nih_plug_vizia::ViziaState;
 use std::sync::Arc;
 
 mod editor;
-mod ring_buffer;
-mod audio_utility;
-mod biquad_filter;
-mod even_butterworth;
-mod frequency_shifter;
+mod audio;
+
+use audio::*;
 
 const MAX_DELAY_TIME: f32 = 30.0;
 const STRRENGTH_SCALE: f32 = 0.005;
