@@ -29,8 +29,8 @@ const FREQ_SHIFT_SCALE: f32 = 0.05;
 struct Ultracomb {
     params: Arc<UltracombParams>,
     all_pass_cascade: Vec<biquad_filter::BiquadCascade>,
-    wet_delay_buffers: Vec<ring_buffer::RingBuffer>,
-    dry_delay_buffers: Vec<ring_buffer::RingBuffer>,
+    wet_delay_buffers: Vec<delay::Delay>,
+    dry_delay_buffers: Vec<delay::Delay>,
     freq_shifters: Vec<frequency_shifter::FrequencyShifter>,
     sampling_frequency: f32,
     editor_state: Arc<ViziaState>
@@ -196,10 +196,10 @@ impl Plugin for Ultracomb {
         self.sampling_frequency = _buffer_config.sample_rate;
         for _n in 0..num_output_channels{
             // Initialize Ring Buffers
-            let mut wet = ring_buffer::RingBuffer::default();
+            let mut wet = delay::Delay::default();
             wet.resize(_buffer_config.sample_rate, MAX_DELAY_TIME);
             self.wet_delay_buffers.push(wet);
-            let mut dry = ring_buffer::RingBuffer::default();
+            let mut dry = delay::Delay::default();
             dry.resize(_buffer_config.sample_rate, MAX_DELAY_TIME);
             self.dry_delay_buffers.push(dry);
             // All-pass filters
@@ -248,7 +248,7 @@ impl Plugin for Ultracomb {
                 let mut wet = wet_buffer.process(*sample);
                 wet = all_pass.process(wet);
                 wet = shifter.process(wet);
-                *sample = audio_utility::process_linear_dry_wet(dry_buffer.process(*sample),wet,strength);
+                *sample = utility::process_linear_dry_wet(dry_buffer.process(*sample),wet,strength);
             }
         }
         ProcessStatus::Normal

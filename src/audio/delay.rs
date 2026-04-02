@@ -16,10 +16,10 @@ use nih_plug::debug::nih_debug_assert;
 
 // A circular buffer that allows delayed read
 #[derive(Clone, Debug, Default)]
-pub struct RingBuffer{
+pub struct Delay{
     sample_rate: f32,
     buffer_size: usize,
-    audio_buffer: Vec<f32>,
+    ring_buffer: Vec<f32>,
     read_index: usize,
     write_index: usize,
     last_read: f32,
@@ -27,7 +27,7 @@ pub struct RingBuffer{
     prev_sample_ratio: f32
 }
 
-impl RingBuffer {
+impl Delay {
     //Resizes and resets the buffer
     pub fn resize(&mut self, sample_rate: f32, max_delay: f32) {
         nih_debug_assert!(max_delay > 0.0);
@@ -35,7 +35,7 @@ impl RingBuffer {
 
         self.sample_rate = sample_rate;
         self.buffer_size = (sample_rate * max_delay).ceil() as usize;
-        self.audio_buffer.resize(self.buffer_size as usize, 0.0);
+        self.ring_buffer.resize(self.buffer_size as usize, 0.0);
         self.reset()
     }
 
@@ -67,14 +67,14 @@ impl RingBuffer {
     /// Write a single incoming sample to the buffer
     fn ingest(&mut self, sample: f32){
         //Write incoming sample
-        self.audio_buffer[self.write_index] = sample;
+        self.ring_buffer[self.write_index] = sample;
         self.write_index = self.advance_index(self.write_index);
     }
     
     /// Rerturn current delayed sample.
     fn next_sample(&mut self) -> f32 {
-        let result = self.now_ratio * self.audio_buffer[self.read_index] + self.prev_sample_ratio * self.last_read;
-        self.last_read = self.audio_buffer[self.read_index];
+        let result = self.now_ratio * self.ring_buffer[self.read_index] + self.prev_sample_ratio * self.last_read;
+        self.last_read = self.ring_buffer[self.read_index];
         self.read_index = self.advance_index(self.read_index);
         result
     }
@@ -93,7 +93,7 @@ impl RingBuffer {
         self.read_index = 0;
         self.write_index = 0;
         self.move_read_index(0);
-        self.audio_buffer.fill(0.0);
+        self.ring_buffer.fill(0.0);
         self.last_read = 0.0;
     }
 }

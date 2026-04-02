@@ -13,8 +13,8 @@
 // along with this program. If not, see https://www.gnu.org/licenses/.
 
 pub mod all_pass;
-pub mod ring_buffer;
-pub mod audio_utility;
+pub mod delay;
+pub mod utility;
 pub mod biquad_filter;
-pub mod even_butterworth;
+pub mod butterworth;
 pub mod frequency_shifter;

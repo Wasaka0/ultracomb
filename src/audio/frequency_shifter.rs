@@ -14,7 +14,7 @@
 
 use std::f32::consts;
 
-use crate::{biquad_filter, even_butterworth};
+use crate::{biquad_filter, butterworth};
 
 // Reducing this will reduce oscillator artifacts at the cost of memory.
 const LUT_BASE_FREQ: f32 = 3.0;
@@ -24,7 +24,7 @@ const CROSSFADE_LENGTH: f32 = 0.05;
 // A frequency shifter using the quadrature oscillator method  
 #[derive(Clone, Debug, Default)]
 pub struct FrequencyShifter{
-    low_pass_filters: [even_butterworth::EvenButterworth; 2],
+    low_pass_filters: [butterworth::Butterworth; 2],
     upper_sample: f32,
     lower_sample: f32,
     first_osc: QuadratureOscillator,

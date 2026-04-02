@@ -16,12 +16,12 @@ use crate::biquad_filter;
 
 // Butterworth filter of even order build with biquad cascade
 #[derive(Clone,Debug, Default)]
-pub struct EvenButterworth{
+pub struct Butterworth{
     cascade: biquad_filter::BiquadCascade,
     order: biquad_filter::Order
 }
 
-impl EvenButterworth{
+impl Butterworth{
     pub fn process(&mut self, sample: f32) -> f32 {
         self.cascade.process(sample)
     }
