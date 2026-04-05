@@ -14,7 +14,7 @@
 
 use std::f32::consts;
 
-use crate::{biquad_filter, butterworth};
+use crate::{audio::hilbert::HilbertIIR, biquad_filter, butterworth};
 
 // Reducing this will reduce oscillator artifacts at the cost of memory.
 const LUT_BASE_FREQ: f32 = 3.0;
@@ -24,7 +24,7 @@ const CROSSFADE_LENGTH: f32 = 0.05;
 // A frequency shifter using the quadrature oscillator method  
 #[derive(Clone, Debug, Default)]
 pub struct FrequencyShifter{
-    third_method_shift: ThirdMethod,
+    third_method_shift: HilbertMethod,
     freq_shift: f32,
     crossfade_length: u32,
     crossfade_position: u32
@@ -169,5 +169,41 @@ impl ThirdMethod{
 
     pub fn set_frequency(&mut self, frequency: f32){
         self.second_osc.set_frequency(self.freq_static_osc + frequency);
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+struct HilbertMethod{
+    filter: HilbertIIR,
+    upper_sample: f32,
+    lower_sample: f32,
+    osc: QuadratureOscillator,
+}
+
+impl HilbertMethod{
+     //Process a single sample ruturning the output shifted in frequency 
+    pub fn process(&mut self, sample: f32) -> f32 {
+        // Get quadrature samples
+        let (sin, cos) = self.osc.next();
+
+        (self.upper_sample, self.lower_sample) = self.filter.process(sample);
+
+        // Upper branch of the frequency shifter
+        self.upper_sample = self.upper_sample * cos;
+        // Lower branch of the frequency shifter
+        self.lower_sample = self.lower_sample * sin;
+
+        self.upper_sample + self.lower_sample
+    }
+
+    //Prepares the shifter by configuring its elements according to the given sample frequency
+    pub fn initialize(&mut self, sample_rate: f32) {
+        self.filter.initialize(sample_rate);
+        self.osc.initialize(sample_rate);
+        self.osc.set_frequency(0.0);
+    }
+
+    pub fn set_frequency(&mut self, frequency: f32){
+        self.osc.set_frequency(frequency);
     }
 }

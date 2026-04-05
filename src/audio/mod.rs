@@ -18,3 +18,4 @@ pub mod utility;
 pub mod biquad_filter;
 pub mod butterworth;
 pub mod frequency_shifter;
+pub mod hilbert;
