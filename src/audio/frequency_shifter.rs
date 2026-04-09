@@ -38,7 +38,7 @@ impl FrequencyShifter{
             return sample;
         }
 
-        let shifted = self.third_method_shift.process(sample);
+        let shifted = 2.0 * self.third_method_shift.process(sample);
         
         //Apply fade-in or fade-out
         if self.freq_shift == 0.0 { // Fade-out
