@@ -21,9 +21,9 @@ mod audio;
 
 use audio::*;
 
-const MAX_DELAY_TIME: f32 = 30.0;
+const MAX_DELAY_TIME: f32 = 15.0;
 const STRENGTH_SCALE: f32 = 0.005;
-const MAX_FREQ_SHIFT: f32 = 5.0;
+const MAX_FREQ_SHIFT: f32 = 30.0;
 
 struct Ultracomb {
     params: Arc<UltracombParams>,
