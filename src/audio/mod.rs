@@ -16,5 +16,5 @@ pub mod all_pass;
 pub mod delay;
 pub mod utility;
 pub mod biquad_filter;
-pub mod butterworth;
+pub mod designed_filters;
 pub mod frequency_shifter;

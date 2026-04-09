@@ -47,8 +47,33 @@ impl Butterworth{
             biquad_filter::Order::Sixth => {
                 return vec![0.51763809, 0.70710678, 1.9318517];
             }
-            biquad_filter::Order::Thirty => todo!()
+            biquad_filter::Order::Thirty => todo!(),
+            biquad_filter::Order::Sixteenth => todo!()
         }
     }
 
+}
+
+// Elliptic filter of 16th order at fs/4, more details at filter-design/ellip.py
+#[derive(Clone,Debug, Default)]
+pub struct EllipFs4{
+    cascade: biquad_filter::BiquadCascade,
+}
+
+impl EllipFs4{
+    pub fn process(&mut self, sample: f32) -> f32 {
+        self.cascade.process(sample)
+    }
+
+    pub fn initialize(&mut self){
+        self.cascade.initialize(biquad_filter::Order::Sixteenth);
+        self.cascade.coeffs(0, 0.022093670046893908, 0.038679037689662396, 0.02209367004689391, -0.9701746143627674, 0.34064054889792633);
+        self.cascade.coeffs(1, 1.0, 0.7888712019543745, 0.9999999999999999, -0.5322394506915348, 0.6377500488074569);
+        self.cascade.coeffs(2, 1.0, 0.28565082322191526, 0.9999999999999999, -0.2160322072785441, 0.8522767976110504);
+        self.cascade.coeffs(3, 1.0, 0.10093174958624697, 1.0, -0.0782040694101687, 0.9457891280379078);
+        self.cascade.coeffs(4, 1.0, 0.03626324176471161, 0.9999999999999999, -0.026614068642986644, 0.9808049694277273);
+        self.cascade.coeffs(5, 1.0, 0.013785936351792927, 1.0000000000000002, -0.008246391646660916, 0.9933109486789213);
+        self.cascade.coeffs(6, 1.0, 0.006067593521347459, 1.0, -0.0018858753780354738, 0.9977548493295412);
+        self.cascade.coeffs(7, 1.0, 0.003672637154849468, 1.0, 9.35244676234884e-05, 0.9994678706284147);
+    }
 }

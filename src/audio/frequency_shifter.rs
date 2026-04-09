@@ -14,7 +14,7 @@
 
 use std::f32::consts;
 
-use crate::{biquad_filter, butterworth};
+use crate::designed_filters;
 
 // Reducing this will reduce oscillator artifacts at the cost of memory.
 const LUT_BASE_FREQ: f32 = 3.0;
@@ -127,7 +127,7 @@ impl QuadratureOscillator{
 
 #[derive(Clone, Debug, Default)]
 struct ThirdMethod{
-    low_pass_filters: [butterworth::Butterworth; 2],
+    low_pass_filters: [designed_filters::Butterworth; 2],
     upper_sample: f32,
     lower_sample: f32,
     first_osc: QuadratureOscillator,
