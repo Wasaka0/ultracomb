@@ -186,12 +186,12 @@ impl HilbertMethod{
         // Get quadrature samples
         let (sin, cos) = self.osc.next();
 
-        (self.upper_sample, self.lower_sample) = self.filter.process(sample);
+        let (up, down) = self.filter.process(sample as f64);
 
         // Upper branch of the frequency shifter
-        self.upper_sample = self.upper_sample * cos;
+        self.upper_sample = up as f32 * cos;
         // Lower branch of the frequency shifter
-        self.lower_sample = self.lower_sample * sin;
+        self.lower_sample = down as f32 * sin;
 
         self.upper_sample + self.lower_sample
     }
