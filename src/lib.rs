@@ -24,7 +24,7 @@ use audio::*;
 const MAX_DELAY_TIME: f32 = 30.0;
 const STRRENGTH_SCALE: f32 = 0.005;
 const DELAY_SCALE: f32 = 30.0;
-const FREQ_SHIFT_SCALE: f32 = 0.05;
+const MAX_FREQ_SHIFT: f32 = 5.0;
 
 struct Ultracomb {
     params: Arc<UltracombParams>,
@@ -119,8 +119,8 @@ impl Default for UltracombParams {
                 "Speed",
                 0.0,
                 FloatRange::Linear {
-                    min: -100.0,
-                    max: 100.0,
+                    min: -MAX_FREQ_SHIFT,
+                    max: MAX_FREQ_SHIFT,
                 },
             )
             .with_step_size(0.1)
@@ -238,7 +238,7 @@ impl Plugin for Ultracomb {
             let phase_freq = if phase < 10.0 {20000.0 - 1000.0 * phase} else if phase < 30.0 { 10000.0 - (phase - 10.0) * 250.0} else if phase < 70.0 { 5000.0 - (phase - 30.0) * 100.0}  else {1000.0 - (phase - 70.0) * 30.0};
             let phase_q = if phase < 10.0 {30.0 - 2.5 * phase} else if phase < 50.0 {5.0 - (phase - 10.0) * 0.075} else if phase < 70.0 { 2.0 - (phase - 50.0) * 0.05} else {1.0 - (phase - 70.0) * 0.0323};
             let strength = self.params.strength.smoothed.next() * STRRENGTH_SCALE;
-            let freq_shift = self.params.speed.smoothed.next() * FREQ_SHIFT_SCALE;
+            let freq_shift = self.params.speed.smoothed.next();
             //Loop for each channel
             for ((((sample,wet_buffer),shifter),dry_buffer),all_pass) in sample_per_channel.iter_mut().zip(self.wet_delay_buffers.iter_mut()).zip(self.freq_shifters.iter_mut()).zip(self.dry_delay_buffers.iter_mut()).zip(self.all_pass_cascade.iter_mut()){
                 wet_buffer.set_delay_ms(delay);
