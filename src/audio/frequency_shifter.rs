@@ -127,7 +127,7 @@ impl QuadratureOscillator{
 
 #[derive(Clone, Debug, Default)]
 struct ThirdMethod{
-    low_pass_filters: [designed_filters::Butterworth; 2],
+    low_pass_filters: [designed_filters::EllipFs4; 2],
     upper_sample: f32,
     lower_sample: f32,
     first_osc: QuadratureOscillator,
@@ -157,8 +157,7 @@ impl ThirdMethod{
     pub fn initialize(&mut self, sample_rate: f32) {
         self.freq_static_osc = sample_rate * 0.25;
         for filter in &mut self.low_pass_filters{
-            filter.initialize(biquad_filter::Order::Sixth);
-            filter.low_pass(sample_rate,self.freq_static_osc);
+            filter.initialize();
         }
 
         self.first_osc.initialize(sample_rate);
