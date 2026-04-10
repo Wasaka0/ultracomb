@@ -4,6 +4,7 @@ Copyright (c) 2024 Geraint Luff / Signalsmith Audio Ltd.
 
 Released under 0BSD: BSD Zero Clause License
 */
+// Adapted code from: https://github.com/Signalsmith-Audio/hilbert-iir
 use num_complex::Complex64;
 const ORDER: usize = 12;
 const COEFFS: [Complex64; ORDER] = [Complex64::new(-0.000224352093802, 0.00543499018201),
