@@ -15,10 +15,11 @@
 use crate::audio::*;
 
 pub const MAX_DELAY_TIME: f32 = 15.0;
+const MAX_STACK: usize = 16;
 
 #[derive(Clone, Debug, Default)]
 pub struct Effect{
-    chain: [EffectChain; 16],
+    chain: [EffectChain; MAX_STACK],
     settings: Settings,
     sample: f32
 }
@@ -30,6 +31,7 @@ pub struct Settings{
     pub phaser_freq: f32,
     pub phaser_q: f32,
     pub freq_shift: f32,
+    pub multiplier: f32,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -78,9 +80,15 @@ impl Effect{
     }
     pub fn process(&mut self, sample: f32) -> f32{
         self.sample = sample;
-        for effect in &mut self.chain{
-            let (dry,wet) = effect.process(self.sample,self.settings);
+        let last_full_chain = self.settings.multiplier.trunc() as usize;
+        let next_chain_ratio = self.settings.multiplier.fract();
+        for i in 0..last_full_chain{
+            let (dry,wet) = self.chain[i].process(self.sample,self.settings);
             self.sample = 0.5 * dry + 0.5 * wet;
+        }
+        if last_full_chain < MAX_STACK && next_chain_ratio > 0.0{
+            let (dry,wet) = self.chain[last_full_chain].process(self.sample,self.settings);
+            self.sample = (1.0 - next_chain_ratio) * self.sample + next_chain_ratio * (0.5 * dry + 0.5 * wet);
         }
         self.sample
     }

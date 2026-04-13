@@ -224,6 +224,7 @@ impl Plugin for Ultracomb {
             self.fx_settings.phaser_q = if phase < 10.0 {30.0 - 2.5 * phase} else if phase < 50.0 {5.0 - (phase - 10.0) * 0.075} else if phase < 70.0 { 2.0 - (phase - 50.0) * 0.05} else {1.0 - (phase - 70.0) * 0.0323};
             let strength = self.params.strength.smoothed.next() * STRENGTH_SCALE;
             self.fx_settings.freq_shift = self.params.speed.smoothed.next();
+            self.fx_settings.multiplier = self.params.multiplier.smoothed.next();
             //Loop for each channel
             for (sample,ultracomb) in sample_per_channel.iter_mut().zip(self.ultracomb.iter_mut()){
                 ultracomb.set_settings(self.fx_settings);
