@@ -18,6 +18,7 @@ crate-type = ["cdylib"]
 # thread in debug builds.
 nih_plug = { git = "https://github.com/Wasaka0/nih-plug.git", features = ["assert_process_allocs"], branch = "update-baseview"}
 nih_plug_vizia = { git = "https://github.com/Wasaka0/nih-plug.git", branch = "update-baseview"}
+num-complex = "0.4.6"
 
 [profile.release]
 lto = "thin"
