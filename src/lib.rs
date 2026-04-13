@@ -214,12 +214,8 @@ impl Plugin for Ultracomb {
     }
 
     fn reset(&mut self) {
-        for buffer in self.wet_delay_buffers.iter_mut(){
-            buffer.reset();
-        }
-        for buffer in self.dry_delay_buffers.iter_mut(){
-            buffer.reset();
-        }
+        // Reset buffers and envelopes here. This can be called from the audio thread and may not
+        // allocate. You can remove this function if you do not need it.
     }
 
     fn process(
