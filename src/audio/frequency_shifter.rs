@@ -14,7 +14,7 @@
 
 use std::f32::consts;
 
-use crate::designed_filters;
+use crate::audio::designed_filters;
 
 // Reducing this will reduce oscillator artifacts at the cost of memory.
 const LUT_BASE_FREQ: f32 = 3.0;

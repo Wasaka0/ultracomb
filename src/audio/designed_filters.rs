@@ -12,7 +12,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see https://www.gnu.org/licenses/.
 
-use crate::biquad_filter;
+use crate::audio::biquad_filter;
 
 // Butterworth filter of even order build with biquad cascade
 #[derive(Clone,Debug, Default)]
