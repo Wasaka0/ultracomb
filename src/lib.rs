@@ -20,7 +20,7 @@ mod editor;
 mod audio;
 mod ultracomb;
 
-const STRENGTH_SCALE: f32 = 0.005;
+const STRENGTH_SCALE: f32 = 0.01;
 const MAX_FREQ_SHIFT: f32 = 30.0;
 
 struct Ultracomb {
@@ -217,8 +217,8 @@ impl Plugin for Ultracomb {
             //Loop for each channel
             for (sample,ultracomb) in sample_per_channel.iter_mut().zip(self.ultracomb.iter_mut()){
                 ultracomb.set_settings(self.fx_settings);
-                let (dry,wet) = ultracomb.process(*sample);                
-                *sample = audio::utility::process_linear_dry_wet(dry,wet,strength);
+                let wet = ultracomb.process(*sample);                
+                *sample = audio::utility::process_linear_dry_wet(*sample,wet,strength);
             }
         }
         ProcessStatus::Normal

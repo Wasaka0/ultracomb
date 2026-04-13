@@ -18,12 +18,9 @@ pub const MAX_DELAY_TIME: f32 = 15.0;
 
 #[derive(Clone, Debug, Default)]
 pub struct Effect{
-    all_pass: biquad_filter::BiquadCascade,
-    wet_buffer: delay::Delay,
-    dry_buffer: delay::Delay,
-    freq_shifter: frequency_shifter::FrequencyShifter,
+    chain: [EffectChain; 16],
     settings: Settings,
-    sample_rate: f32,
+    sample: f32
 }
 
 #[derive(Copy, Clone, Debug, Default)]
@@ -35,7 +32,16 @@ pub struct Settings{
     pub freq_shift: f32,
 }
 
-impl Effect{
+#[derive(Clone, Debug, Default)]
+struct EffectChain{
+    all_pass: biquad_filter::BiquadCascade,
+    wet_buffer: delay::Delay,
+    dry_buffer: delay::Delay,
+    freq_shifter: frequency_shifter::FrequencyShifter,
+    sample_rate: f32,
+}
+
+impl EffectChain{
     pub fn initialize(&mut self, sample_rate: f32){
         self.sample_rate = sample_rate;
         //Initialize ring buffers
@@ -50,17 +56,33 @@ impl Effect{
         self.freq_shifter = Default::default();
         self.freq_shifter.initialize(self.sample_rate);
     }
-    pub fn process(&mut self, sample: f32) -> (f32,f32){
+    pub fn process(&mut self, sample: f32, settings: Settings) -> (f32,f32){
         //Configure elements
-        self.wet_buffer.set_delay_ms(self.settings.delay);
-        self.dry_buffer.set_delay_ms(self.settings.dry_delay);
-        self.freq_shifter.set_frequency(self.settings.freq_shift);
-        self.all_pass.all_pass(self.sample_rate, self.settings.phaser_freq,self.settings.phaser_q);
+        self.wet_buffer.set_delay_ms(settings.delay);
+        self.dry_buffer.set_delay_ms(settings.dry_delay);
+        self.freq_shifter.set_frequency(settings.freq_shift);
+        self.all_pass.all_pass(self.sample_rate, settings.phaser_freq, settings.phaser_q);
         //Process audio
         let mut wet = self.wet_buffer.process(sample);
         wet = self.all_pass.process(wet);
         wet = self.freq_shifter.process(wet);
         (self.dry_buffer.process(sample),wet)
+    }
+}
+
+impl Effect{
+    pub fn initialize(&mut self, sample_rate: f32){
+        for effect in &mut self.chain{
+            effect.initialize(sample_rate);
+        }
+    }
+    pub fn process(&mut self, sample: f32) -> f32{
+        self.sample = sample;
+        for effect in &mut self.chain{
+            let (dry,wet) = effect.process(self.sample,self.settings);
+            self.sample = 0.5 * dry + 0.5 * wet;
+        }
+        self.sample
     }
     pub fn set_settings(&mut self, new_settings: Settings){
         self.settings = new_settings;
