@@ -18,19 +18,15 @@ use std::sync::Arc;
 
 mod editor;
 mod audio;
+mod ultracomb;
 
-use audio::*;
-
-const MAX_DELAY_TIME: f32 = 15.0;
 const STRENGTH_SCALE: f32 = 0.005;
 const MAX_FREQ_SHIFT: f32 = 30.0;
 
 struct Ultracomb {
     params: Arc<UltracombParams>,
-    all_pass_cascade: Vec<biquad_filter::BiquadCascade>,
-    wet_delay_buffers: Vec<delay::Delay>,
-    dry_delay_buffers: Vec<delay::Delay>,
-    freq_shifters: Vec<frequency_shifter::FrequencyShifter>,
+    ultracomb: Vec<ultracomb::Effect>,
+    pub fx_settings: ultracomb::Settings,
     sampling_frequency: f32,
     editor_state: Arc<ViziaState>
 }
@@ -53,10 +49,8 @@ impl Default for Ultracomb {
     fn default() -> Self {
         Self {
             params: Arc::new(UltracombParams::default()),
-            all_pass_cascade: Default::default(),
-            wet_delay_buffers: Default::default(),
-            dry_delay_buffers: Default::default(),
-            freq_shifters: Default::default(),
+            ultracomb: Default::default(),
+            fx_settings: Default::default(),
             sampling_frequency: Default::default(),
             editor_state: editor::default_state()
         }
@@ -95,7 +89,7 @@ impl Default for UltracombParams {
                 0.0,
                 FloatRange::Skewed{
                     min: 0.0,
-                    max: MAX_DELAY_TIME,
+                    max: ultracomb::MAX_DELAY_TIME,
                     factor: FloatRange::skew_factor(-1.5)
                 },
             )
@@ -107,7 +101,7 @@ impl Default for UltracombParams {
                 0.0,
                 FloatRange::Skewed{
                     min: 0.0,
-                    max: MAX_DELAY_TIME,
+                    max: ultracomb::MAX_DELAY_TIME,
                     factor: FloatRange::skew_factor(-1.5)
                 },
             )
@@ -188,27 +182,13 @@ impl Plugin for Ultracomb {
             .main_output_channels
             .expect("Plugin does not have a main output")
             .get() as usize;
-        //Create ring buffers
-        self.wet_delay_buffers = Vec::new();
-        self.dry_delay_buffers = Vec::new();
-        self.freq_shifters = Vec::new();
         self.sampling_frequency = _buffer_config.sample_rate;
+        //Create effect for each channel
+        self.ultracomb = Vec::new();
         for _n in 0..num_output_channels{
-            // Initialize Ring Buffers
-            let mut wet = delay::Delay::default();
-            wet.resize(_buffer_config.sample_rate, MAX_DELAY_TIME);
-            self.wet_delay_buffers.push(wet);
-            let mut dry = delay::Delay::default();
-            dry.resize(_buffer_config.sample_rate, MAX_DELAY_TIME);
-            self.dry_delay_buffers.push(dry);
-            // All-pass filters
-            let mut pass = biquad_filter::BiquadCascade::default();
-            pass.initialize(biquad_filter::Order::Thirty);
-            self.all_pass_cascade.push(pass);
-            // Initialize Frequency Shifters 
-            let mut shifter = frequency_shifter::FrequencyShifter::default();
-            shifter.initialize(_buffer_config.sample_rate);
-            self.freq_shifters.push(shifter);
+            let mut channel: ultracomb::Effect = Default::default();
+            channel.initialize(self.sampling_frequency);
+            self.ultracomb.push(channel);
         }
         true
     }
@@ -227,23 +207,18 @@ impl Plugin for Ultracomb {
         //Loop for each sample
         for mut sample_per_channel in buffer.iter_samples() {
             // Parameter smoothing happens per sample
-            let dry_delay = self.params.chaos.smoothed.next();
-            let delay = self.params.flanging.smoothed.next();
+            self.fx_settings.dry_delay = self.params.chaos.smoothed.next();
+            self.fx_settings.delay = self.params.flanging.smoothed.next();
             let phase = self.params.phasing.smoothed.next();
-            let phase_freq = if phase < 10.0 {20000.0 - 1000.0 * phase} else if phase < 30.0 { 10000.0 - (phase - 10.0) * 250.0} else if phase < 70.0 { 5000.0 - (phase - 30.0) * 100.0}  else {1000.0 - (phase - 70.0) * 30.0};
-            let phase_q = if phase < 10.0 {30.0 - 2.5 * phase} else if phase < 50.0 {5.0 - (phase - 10.0) * 0.075} else if phase < 70.0 { 2.0 - (phase - 50.0) * 0.05} else {1.0 - (phase - 70.0) * 0.0323};
+            self.fx_settings.phaser_freq = if phase < 10.0 {20000.0 - 1000.0 * phase} else if phase < 30.0 { 10000.0 - (phase - 10.0) * 250.0} else if phase < 70.0 { 5000.0 - (phase - 30.0) * 100.0}  else {1000.0 - (phase - 70.0) * 30.0};
+            self.fx_settings.phaser_q = if phase < 10.0 {30.0 - 2.5 * phase} else if phase < 50.0 {5.0 - (phase - 10.0) * 0.075} else if phase < 70.0 { 2.0 - (phase - 50.0) * 0.05} else {1.0 - (phase - 70.0) * 0.0323};
             let strength = self.params.strength.smoothed.next() * STRENGTH_SCALE;
-            let freq_shift = self.params.speed.smoothed.next();
+            self.fx_settings.freq_shift = self.params.speed.smoothed.next();
             //Loop for each channel
-            for ((((sample,wet_buffer),shifter),dry_buffer),all_pass) in sample_per_channel.iter_mut().zip(self.wet_delay_buffers.iter_mut()).zip(self.freq_shifters.iter_mut()).zip(self.dry_delay_buffers.iter_mut()).zip(self.all_pass_cascade.iter_mut()){
-                wet_buffer.set_delay_ms(delay);
-                dry_buffer.set_delay_ms(dry_delay);
-                shifter.set_frequency(freq_shift);
-                all_pass.all_pass(self.sampling_frequency, phase_freq,phase_q);
-                let mut wet = wet_buffer.process(*sample);
-                wet = all_pass.process(wet);
-                wet = shifter.process(wet);
-                *sample = utility::process_linear_dry_wet(dry_buffer.process(*sample),wet,strength);
+            for (sample,ultracomb) in sample_per_channel.iter_mut().zip(self.ultracomb.iter_mut()){
+                ultracomb.set_settings(self.fx_settings);
+                let (dry,wet) = ultracomb.process(*sample);                
+                *sample = audio::utility::process_linear_dry_wet(dry,wet,strength);
             }
         }
         ProcessStatus::Normal

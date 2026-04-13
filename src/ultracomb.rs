@@ -1,0 +1,68 @@
+// Ultracomb
+// Copyright (C) 2026 M. M. Trinidad
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, version 3.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program. If not, see https://www.gnu.org/licenses/.
+
+use crate::audio::*;
+
+pub const MAX_DELAY_TIME: f32 = 15.0;
+
+#[derive(Clone, Debug, Default)]
+pub struct Effect{
+    all_pass: biquad_filter::BiquadCascade,
+    wet_buffer: delay::Delay,
+    dry_buffer: delay::Delay,
+    freq_shifter: frequency_shifter::FrequencyShifter,
+    settings: Settings,
+    sample_rate: f32,
+}
+
+#[derive(Copy, Clone, Debug, Default)]
+pub struct Settings{
+    pub dry_delay: f32,
+    pub delay: f32,
+    pub phaser_freq: f32,
+    pub phaser_q: f32,
+    pub freq_shift: f32,
+}
+
+impl Effect{
+    pub fn initialize(&mut self, sample_rate: f32){
+        self.sample_rate = sample_rate;
+        //Initialize ring buffers
+        self.wet_buffer = Default::default();
+        self.wet_buffer.resize(self.sample_rate, MAX_DELAY_TIME);
+        self.dry_buffer = Default::default();
+        self.dry_buffer.resize(self.sample_rate, MAX_DELAY_TIME);
+        // All-pass filters
+        self.all_pass = Default::default();
+        self.all_pass.initialize(biquad_filter::Order::Thirty);
+        // Initialize Frequency Shifters 
+        self.freq_shifter = Default::default();
+        self.freq_shifter.initialize(self.sample_rate);
+    }
+    pub fn process(&mut self, sample: f32) -> (f32,f32){
+        //Configure elements
+        self.wet_buffer.set_delay_ms(self.settings.delay);
+        self.dry_buffer.set_delay_ms(self.settings.dry_delay);
+        self.freq_shifter.set_frequency(self.settings.freq_shift);
+        self.all_pass.all_pass(self.sample_rate, self.settings.phaser_freq,self.settings.phaser_q);
+        //Process audio
+        let mut wet = self.wet_buffer.process(sample);
+        wet = self.all_pass.process(wet);
+        wet = self.freq_shifter.process(wet);
+        (self.dry_buffer.process(sample),wet)
+    }
+    pub fn set_settings(&mut self, new_settings: Settings){
+        self.settings = new_settings;
+    }
+}
