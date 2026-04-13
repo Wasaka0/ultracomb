@@ -66,6 +66,8 @@ pub(crate) fn create(
                 ParamSlider::new(cx, Data::params, |params| &params.speed);
                 Label::new(cx, "Dry/Wet");
                 ParamSlider::new(cx, Data::params, |params| &params.strength);
+                Label::new(cx, "Multiplier");
+                ParamSlider::new(cx, Data::params, |params| &params.multiplier);
             })
             .row_between(Pixels(1.0))
             .child_left(Stretch(1.0))

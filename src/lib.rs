@@ -43,6 +43,8 @@ struct UltracombParams {
     pub chaos: FloatParam,
     #[id = "speed"]
     pub speed: FloatParam,
+    #[id = "multiplier"]
+    pub multiplier: FloatParam,
 }
 
 impl Default for Ultracomb {
@@ -118,7 +120,15 @@ impl Default for UltracombParams {
             )
             .with_step_size(0.1)
             .with_smoother(SmoothingStyle::Linear(100.0))
-            .with_unit(" Hz")
+            .with_unit(" Hz"),
+            multiplier: FloatParam::new(
+                "Multiplier",
+                1.0,
+                FloatRange::Linear { min: 1.0, max: 16.0 }
+            )
+            .with_smoother(SmoothingStyle::Linear(50.0))
+            .with_unit(" times")
+            .with_step_size(0.05)
         }
     }
 }
