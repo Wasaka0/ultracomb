@@ -13,6 +13,7 @@
 // along with this program. If not, see https://www.gnu.org/licenses/.
 
 use crate::audio::*;
+use crate::audio::utility::process_linear_dry_wet;
 
 pub const MAX_DELAY_TIME: f32 = 15.0;
 const MAX_STACK: usize = 16;
@@ -91,7 +92,7 @@ impl Effect{
         }
         if last_full_chain < MAX_STACK && next_chain_ratio > 0.0{
             self.chain[last_full_chain].update_settings(self.settings);
-            self.sample = (1.0 - next_chain_ratio) * self.sample + next_chain_ratio * self.chain[last_full_chain].process(self.sample);
+            self.sample = process_linear_dry_wet(self.sample,self.chain[last_full_chain].process(self.sample),next_chain_ratio)
         }
         self.sample
     }

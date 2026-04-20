@@ -15,6 +15,7 @@
 use std::f32::consts;
 
 use crate::audio::designed_filters;
+use crate::audio::utility::process_linear_dry_wet;
 
 // Reducing this will reduce oscillator artifacts at the cost of memory.
 const LUT_BASE_FREQ: f32 = 3.0;
@@ -44,11 +45,11 @@ impl FrequencyShifter{
         if self.freq_shift == 0.0 { // Fade-out
             self.crossfade_position -= 1;
             let ratio = self.crossfade_position as f32 / self.crossfade_length as f32;
-            ratio * shifted + (1.0 - ratio) * sample
+            process_linear_dry_wet(sample, shifted, ratio)
         } else if self.crossfade_position != self.crossfade_length{ // Fade-in
             self.crossfade_position += 1;
             let ratio = self.crossfade_position as f32 / self.crossfade_length as f32;
-            ratio * shifted + (1.0 - ratio) * sample
+            process_linear_dry_wet(sample, shifted, ratio)
         }else{
             shifted
         }
