@@ -58,18 +58,20 @@ impl EffectChain{
         self.freq_shifter = Default::default();
         self.freq_shifter.initialize(self.sample_rate);
     }
-    pub fn process(&mut self, sample: f32, settings: Settings) -> f32{
-        //Configure elements
-        self.wet_buffer.set_delay_ms(settings.delay);
-        self.dry_buffer.set_delay_ms(settings.dry_delay);
-        self.freq_shifter.set_frequency(settings.freq_shift);
-        self.all_pass.all_pass(self.sample_rate, settings.phaser_freq, settings.phaser_q);
+    pub fn process(&mut self, sample: f32) -> f32{
         //Process audio
         let mut wet = self.wet_buffer.process(sample);
         wet = self.all_pass.process(wet);
         wet = self.freq_shifter.process(wet);
         wet = 0.5 * (self.dry_buffer.process(sample) + wet);
         wet
+    }
+    fn update_settings(&mut self, settings: Settings){
+        //Configure elements
+        self.wet_buffer.set_delay_ms(settings.delay);
+        self.dry_buffer.set_delay_ms(settings.dry_delay);
+        self.freq_shifter.set_frequency(settings.freq_shift);
+        self.all_pass.all_pass(self.sample_rate, settings.phaser_freq, settings.phaser_q);
     }
 }
 
@@ -84,10 +86,12 @@ impl Effect{
         let last_full_chain = self.settings.multiplier.trunc() as usize;
         let next_chain_ratio = self.settings.multiplier.fract();
         for i in 0..last_full_chain{
-            self.sample = self.chain[i].process(self.sample,self.settings);
+            self.chain[i].update_settings(self.settings);
+            self.sample = self.chain[i].process(self.sample);
         }
         if last_full_chain < MAX_STACK && next_chain_ratio > 0.0{
-            self.sample = (1.0 - next_chain_ratio) * self.sample + next_chain_ratio * self.chain[last_full_chain].process(self.sample,self.settings);
+            self.chain[last_full_chain].update_settings(self.settings);
+            self.sample = (1.0 - next_chain_ratio) * self.sample + next_chain_ratio * self.chain[last_full_chain].process(self.sample);
         }
         self.sample
     }
