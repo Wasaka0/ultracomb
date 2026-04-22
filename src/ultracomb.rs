@@ -21,6 +21,7 @@ const MAX_STACK: usize = 16;
 #[derive(Clone, Debug, Default)]
 pub struct Effect{
     chain: [EffectChain; MAX_STACK],
+    shift_osc: frequency_shifter::FreqShiftOsc,
     settings: Settings,
     sample: f32
 }
@@ -67,11 +68,12 @@ impl EffectChain{
         wet = 0.5 * (self.dry_buffer.process(sample) + wet);
         wet
     }
-    fn update_settings(&mut self, settings: Settings){
+    fn update_settings(&mut self, settings: Settings, shift_osc_samples: ((f32,f32),(f32,f32))){
         //Configure elements
         self.wet_buffer.set_delay_ms(settings.delay);
         self.dry_buffer.set_delay_ms(settings.dry_delay);
         self.freq_shifter.set_frequency(settings.freq_shift);
+        self.freq_shifter.set_osc_samples(shift_osc_samples);
         self.all_pass.all_pass(self.sample_rate, settings.phaser_freq, settings.phaser_q);
     }
 }
@@ -81,22 +83,25 @@ impl Effect{
         for effect in &mut self.chain{
             effect.initialize(sample_rate);
         }
+        self.shift_osc.initialize(sample_rate);
     }
     pub fn process(&mut self, sample: f32) -> f32{
         self.sample = sample;
         let last_full_chain = self.settings.multiplier.trunc() as usize;
         let next_chain_ratio = self.settings.multiplier.fract();
+        let shift_osc_samples = self.shift_osc.next();
         for i in 0..last_full_chain{
-            self.chain[i].update_settings(self.settings);
+            self.chain[i].update_settings(self.settings,shift_osc_samples);
             self.sample = self.chain[i].process(self.sample);
         }
         if last_full_chain < MAX_STACK && next_chain_ratio > 0.0{
-            self.chain[last_full_chain].update_settings(self.settings);
+            self.chain[last_full_chain].update_settings(self.settings,shift_osc_samples);
             self.sample = process_linear_dry_wet(self.sample,self.chain[last_full_chain].process(self.sample),next_chain_ratio)
         }
         self.sample
     }
     pub fn set_settings(&mut self, new_settings: Settings){
         self.settings = new_settings;
+        self.shift_osc.set_frequency(self.settings.freq_shift);
     }
 }

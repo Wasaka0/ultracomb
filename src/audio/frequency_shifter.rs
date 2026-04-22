@@ -59,12 +59,14 @@ impl FrequencyShifter{
     pub fn initialize(&mut self, sample_rate: f32) {
         self.crossfade_length = (CROSSFADE_LENGTH * sample_rate).ceil() as u32;
         self.crossfade_position = 0;
-        self.third_method_shift.initialize(sample_rate);
+        self.third_method_shift.initialize();
     }
 
     pub fn set_frequency(&mut self, frequency: f32){
         self.freq_shift = frequency;
-        self.third_method_shift.set_frequency(frequency);
+    }
+    pub fn set_osc_samples(&mut self, samples: ((f32,f32),(f32,f32))){
+        self.third_method_shift.osc_samples = samples;
     }
 }
 
@@ -127,21 +129,47 @@ impl QuadratureOscillator{
 }
 
 #[derive(Clone, Debug, Default)]
+pub struct FreqShiftOsc{
+    first_osc: QuadratureOscillator,
+    second_osc: QuadratureOscillator,
+    freq_static_osc: f32
+}
+
+impl FreqShiftOsc{
+    // Initilize the oscillator, filling the look-up table
+    pub fn initialize(&mut self, sample_rate: f32){
+        self.freq_static_osc = sample_rate * 0.25;
+        self.first_osc.initialize(sample_rate);
+        self.first_osc.set_frequency(self.freq_static_osc);
+        self.second_osc.initialize(sample_rate);
+        self.second_osc.set_frequency(self.freq_static_osc);
+    }
+
+    // Returns the next sin and cos sample for both quadrature oscillators
+    pub fn next(&mut self) -> ((f32,f32),(f32,f32)){
+        (self.first_osc.next(),self.second_osc.next())
+    }
+
+    // Sets the frequency shift frequency
+    pub fn set_frequency(&mut self, frequency: f32){
+        self.second_osc.set_frequency(self.freq_static_osc + frequency);
+    }
+}
+
+#[derive(Clone, Debug, Default)]
 struct ThirdMethod{
     low_pass_filters: [designed_filters::EllipFs4; 2],
     upper_sample: f32,
     lower_sample: f32,
-    first_osc: QuadratureOscillator,
-    second_osc: QuadratureOscillator,
-    freq_static_osc: f32,
+    osc_samples: ((f32,f32),(f32,f32)),
 }
 
 impl ThirdMethod{
      //Process a single sample ruturning the output shifted in frequency 
     pub fn process(&mut self, sample: f32) -> f32 {
         // Get quadrature samples
-        let (sin_1, cos_1) = self.first_osc.next();
-        let (sin_2, cos_2) = self.second_osc.next();
+        let (sin_1, cos_1) = self.osc_samples.0;
+        let (sin_2, cos_2) = self.osc_samples.1;
 
         // Upper branch of the frequency shifter
         self.upper_sample = sample * sin_1;
@@ -155,19 +183,9 @@ impl ThirdMethod{
     }
 
     //Prepares the shifter by configuring its elements according to the given sample frequency
-    pub fn initialize(&mut self, sample_rate: f32) {
-        self.freq_static_osc = sample_rate * 0.25;
+    pub fn initialize(&mut self) {
         for filter in &mut self.low_pass_filters{
             filter.initialize();
         }
-
-        self.first_osc.initialize(sample_rate);
-        self.first_osc.set_frequency(self.freq_static_osc);
-        self.second_osc.initialize(sample_rate);
-        self.second_osc.set_frequency(self.freq_static_osc);
-    }
-
-    pub fn set_frequency(&mut self, frequency: f32){
-        self.second_osc.set_frequency(self.freq_static_osc + frequency);
     }
 }
