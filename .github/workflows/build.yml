@@ -10,55 +10,32 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
-
-    runs-on: windows-latest
-
+  Compile:
+    strategy:
+      matrix:
+        include:
+          - { name: windows,         os: windows-latest }
+          - { name: ubuntu,    os: ubuntu-latest }
+          - { name: macos, os: macos-latest }
+    runs-on:  ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v4
-    - name: Build-Windows
-      run: cargo xtask bundle ultracomb --release
-    - run: mkdir -p plug-in
-    - run: copy .\target\bundled\*.clap plug-in
-    - run: copy .\target\bundled\*.vst3\Contents\x86_64-win\*.vst3 plug-in
-    - uses: actions/upload-artifact@v6
-      with:
-        name: windows
-        path: plug-in
-        if-no-files-found: error
-
-  build-linux:
-
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v4
-    - name: Install dependencies
+    - name: Install ubuntu dependencies
       run: |
           sudo apt-get update
           sudo apt-get install -y libgl-dev libx11-xcb-dev
-    - name: Build-Linux
+      if: contains(matrix.os, 'ubuntu')
+    - name: Compile for ${{ matrix.name }}
       run: cargo xtask bundle ultracomb --release
     - run: mkdir -p plug-in
     - run: cp -r ./target/bundled/ plug-in
+    - name: Move vst3 file 
+      run: |
+          cp ./plug-in/bundled/Ultracomb.vst3/Contents/x86_64-win/*.vst3 .
+          rm -r ./plug-in/bundled/
+      if: contains(matrix.os, 'windows')
     - uses: actions/upload-artifact@v6
       with:
-        name: linux
-        path: plug-in
-        if-no-files-found: error
-
-  build-mac:
-
-    runs-on: macos-latest
-
-    steps:
-    - uses: actions/checkout@v4
-    - name: Build-MacOS
-      run: cargo xtask bundle ultracomb --release
-    - run: mkdir -p plug-in
-    - run: cp -r ./target/bundled/ plug-in
-    - uses: actions/upload-artifact@v6
-      with:
-        name: macos
+        name: ${{ matrix.name }}
         path: plug-in
         if-no-files-found: error
