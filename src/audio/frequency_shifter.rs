@@ -15,50 +15,25 @@
 use std::f32::consts;
 
 use crate::audio::designed_filters;
-use crate::audio::utility::process_linear_dry_wet;
 
 // Reducing this will reduce oscillator artifacts at the cost of memory.
 const LUT_BASE_FREQ: f32 = 3.0;
-// Length in seconds of crossfade applied when shifter is not in use 
-const CROSSFADE_LENGTH: f32 = 0.05;
 
 // A frequency shifter using the quadrature oscillator method  
 #[derive(Clone, Debug, Default)]
 pub struct FrequencyShifter{
     third_method_shift: ThirdMethod,
     freq_shift: f32,
-    crossfade_length: u32,
-    crossfade_position: u32
 }
 
 impl FrequencyShifter{
     //Process a single sample ruturning the output shifted in frequency 
     pub fn process(&mut self, sample: f32) -> f32 {
-        //Bypass if not shifting nor crossfading
-        if self.freq_shift == 0.0 && self.crossfade_position == 0{
-            return sample;
-        }
-
-        let shifted = 2.0 * self.third_method_shift.process(sample);
-        
-        //Apply fade-in or fade-out
-        if self.freq_shift == 0.0 { // Fade-out
-            self.crossfade_position -= 1;
-            let ratio = self.crossfade_position as f32 / self.crossfade_length as f32;
-            process_linear_dry_wet(sample, shifted, ratio)
-        } else if self.crossfade_position != self.crossfade_length{ // Fade-in
-            self.crossfade_position += 1;
-            let ratio = self.crossfade_position as f32 / self.crossfade_length as f32;
-            process_linear_dry_wet(sample, shifted, ratio)
-        }else{
-            shifted
-        }
+        2.0 * self.third_method_shift.process(sample)
     }
 
     //Prepares the shifter by configuring its elements according to the given sample frequency
-    pub fn initialize(&mut self, sample_rate: f32) {
-        self.crossfade_length = (CROSSFADE_LENGTH * sample_rate).ceil() as u32;
-        self.crossfade_position = 0;
+    pub fn initialize(&mut self) {
         self.third_method_shift.initialize();
     }
 
