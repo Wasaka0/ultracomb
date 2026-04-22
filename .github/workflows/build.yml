@@ -10,7 +10,20 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  Compile:
+  get-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version-number: ${{ steps.fetch-version.outputs.VERSION }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch project version
+        id: fetch-version
+        run: |
+          version="$(grep "version =" Cargo.toml | sed 's/^version = //' | tr -d '"')"
+          echo "VERSION=$version" >> $GITHUB_OUTPUT
+
+  compile:
+    needs: [get-version]
     strategy:
       matrix:
         include:
@@ -36,6 +49,6 @@ jobs:
       if: contains(matrix.os, 'windows')
     - uses: actions/upload-artifact@v6
       with:
-        name: ${{ matrix.name }}
+        name: ${{ matrix.name }}-${{ needs.get-version.outputs.version-number }}
         path: plug-in
         if-no-files-found: error
