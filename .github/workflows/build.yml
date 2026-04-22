@@ -15,7 +15,7 @@ jobs:
     outputs:
       version-number: ${{ steps.fetch-version.outputs.VERSION }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Fetch project version
         id: fetch-version
         run: |
@@ -32,7 +32,7 @@ jobs:
           - { name: macos, os: macos-latest }
     runs-on:  ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Install ubuntu dependencies
       run: |
           sudo apt-get update
