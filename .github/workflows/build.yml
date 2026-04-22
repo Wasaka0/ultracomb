@@ -41,11 +41,12 @@ jobs:
     - name: Compile for ${{ matrix.name }}
       run: cargo xtask bundle ultracomb --release
     - run: mkdir -p plug-in
-    - run: cp -r ./target/bundled/ plug-in
+    - run: cp -r ./target/bundled/* plug-in
     - name: Move vst3 file 
       run: |
-          cp ./plug-in/bundled/Ultracomb.vst3/Contents/x86_64-win/*.vst3 .
-          rm -r ./plug-in/bundled/
+          mv ./plug-in/Ultracomb.vst3/ ./plug-in/Ultracomb
+          cp ./plug-in/Ultracomb/Contents/x86_64-win/*.vst3 ./plug-in/
+          rm -r ./plug-in/Ultracomb/
       if: contains(matrix.os, 'windows')
     - uses: actions/upload-artifact@v6
       with:
