@@ -73,6 +73,8 @@ impl EffectChain{
             wet = process_linear_dry_wet(wet, self.freq_shifter.process(wet), self.shift_fade_ratio)
         }
         wet = 0.5 * (self.dry_buffer.process(sample) + wet);
+        // Apply 0.3dB gain compensation when freq shifter is active. The amount was achieved subjectively.
+        wet = wet * (1.0 + (0.072 * self.shift_fade_ratio));
         wet
     }
     fn update_settings(&mut self, settings: Settings, shift_osc_samples: ((f32,f32),(f32,f32)), shift_fade_ratio: f32){
