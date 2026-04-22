@@ -124,7 +124,7 @@ impl Default for UltracombParams {
             multiplier: FloatParam::new(
                 "Multiplier",
                 1.0,
-                FloatRange::Linear { min: 1.0, max: 16.0 }
+                FloatRange::Linear { min: 1.0, max: ultracomb::MAX_STACK as f32}
             )
             .with_smoother(SmoothingStyle::Linear(50.0))
             .with_unit(" times")

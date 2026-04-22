@@ -16,7 +16,7 @@ use crate::audio::*;
 use crate::audio::utility::process_linear_dry_wet;
 
 pub const MAX_DELAY_TIME: f32 = 5.0;
-const MAX_STACK: usize = 16;
+pub const MAX_STACK: usize = 16;
 // Length in seconds of crossfade applied when freq shifter is not in use 
 const CROSSFADE_LENGTH: f32 = 0.05;
 
