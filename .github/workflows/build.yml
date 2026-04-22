@@ -27,15 +27,14 @@ jobs:
     strategy:
       matrix:
         include:
-          - { name: windows,         os: windows-latest }
-          - { name: ubuntu,    os: ubuntu-latest }
+          - { name: windows, os: windows-latest }
+          - { name: ubuntu, os: ubuntu-latest }
           - { name: macos, os: macos-latest }
     runs-on:  ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v6
     - name: Install ubuntu dependencies
       run: |
-          sudo apt-get update
           sudo apt-get install -y libgl-dev libx11-xcb-dev
       if: contains(matrix.os, 'ubuntu')
     - name: Compile for ${{ matrix.name }}
