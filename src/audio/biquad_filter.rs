@@ -110,6 +110,11 @@ impl BiquadFilter {
         let a2 = b0;
         self.coefficients = BiquadCoefficients { b0, b1, b2, a1, a2};
     }
+
+    //Sets the coefficients of the filter directly.
+    fn coeffs(&mut self, c: BiquadCoefficients) {
+        self.coefficients = c;
+    }
 }
 
 #[derive(Clone,Debug, Default)]
@@ -124,7 +129,8 @@ pub enum Order{
     Second,
     Forth,
     Sixth,
-    Thirty
+    Thirty,
+    Sixteenth
 }
 
 impl BiquadCascade {
@@ -160,6 +166,9 @@ impl BiquadCascade {
             Order::Thirty => {
                 15
             }
+            Order::Sixteenth => {
+                8
+            }
         };
         self.biquads = Vec::new();
         for _i in 0..n{
@@ -176,6 +185,12 @@ impl BiquadCascade {
             filter.reset();
             filter.low_pass(sampling_frequency, center_frequency, q);
         }
+    }
+
+    // Sets the coefficients for the chosen stage of the biquad cascade.
+    pub fn coeffs(&mut self, stage: usize, b0: f32, b1: f32, b2: f32, a1: f32, a2: f32) {
+        self.biquads[stage].reset();
+        self.biquads[stage].coeffs(BiquadCoefficients { b0, b1, b2, a1, a2});
     }
 
     //Calculates the coefficients for an all pass filter. This may produce unstable filter coefficients.

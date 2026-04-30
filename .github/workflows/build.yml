@@ -10,55 +10,45 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
-
-    runs-on: windows-latest
-
-    steps:
-    - uses: actions/checkout@v4
-    - name: Build-Windows
-      run: cargo xtask bundle ultracomb --release
-    - run: mkdir -p plug-in
-    - run: copy .\target\bundled\*.clap plug-in
-    - run: copy .\target\bundled\*.vst3\Contents\x86_64-win\*.vst3 plug-in
-    - uses: actions/upload-artifact@v6
-      with:
-        name: windows
-        path: plug-in
-        if-no-files-found: error
-
-  build-linux:
-
+  get-version:
     runs-on: ubuntu-latest
-
+    outputs:
+      version-number: ${{ steps.fetch-version.outputs.VERSION }}
     steps:
-    - uses: actions/checkout@v4
-    - name: Install dependencies
+      - uses: actions/checkout@v6
+      - name: Fetch project version
+        id: fetch-version
+        run: |
+          version="$(grep "version =" Cargo.toml | sed 's/^version = //' | tr -d '"')"
+          echo "VERSION=$version" >> $GITHUB_OUTPUT
+
+  compile:
+    needs: [get-version]
+    strategy:
+      matrix:
+        include:
+          - { name: windows, os: windows-latest }
+          - { name: ubuntu, os: ubuntu-latest }
+          - { name: macos, os: macos-latest }
+    runs-on:  ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v6
+    - name: Install ubuntu dependencies
       run: |
-          sudo apt-get update
           sudo apt-get install -y libgl-dev libx11-xcb-dev
-    - name: Build-Linux
+      if: contains(matrix.os, 'ubuntu')
+    - name: Compile for ${{ matrix.name }}
       run: cargo xtask bundle ultracomb --release
     - run: mkdir -p plug-in
-    - run: cp -r ./target/bundled/ plug-in
+    - run: cp -r ./target/bundled/* plug-in
+    - name: Move vst3 file 
+      run: |
+          mv ./plug-in/Ultracomb.vst3/ ./plug-in/Ultracomb
+          cp ./plug-in/Ultracomb/Contents/x86_64-win/*.vst3 ./plug-in/
+          rm -r ./plug-in/Ultracomb/
+      if: contains(matrix.os, 'windows')
     - uses: actions/upload-artifact@v6
       with:
-        name: linux
-        path: plug-in
-        if-no-files-found: error
-
-  build-mac:
-
-    runs-on: macos-latest
-
-    steps:
-    - uses: actions/checkout@v4
-    - name: Build-MacOS
-      run: cargo xtask bundle ultracomb --release
-    - run: mkdir -p plug-in
-    - run: cp -r ./target/bundled/ plug-in
-    - uses: actions/upload-artifact@v6
-      with:
-        name: macos
+        name: ${{ matrix.name }}-${{ needs.get-version.outputs.version-number }}
         path: plug-in
         if-no-files-found: error
