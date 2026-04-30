@@ -6,13 +6,6 @@ use std::sync::Arc;
 
 use crate::UltracombParams;
 
-#[derive(Lens)]
-struct Data {
-    params: Arc<UltracombParams>
-}
-
-impl Model for Data {}
-
 // Makes sense to also define this here, makes it a bit easier to keep track of
 pub(crate) fn default_state() -> Arc<ViziaState> {
     ViziaState::new(|| (400, 200))
@@ -23,10 +16,7 @@ pub(crate) fn create(
     editor_state: Arc<ViziaState>,
 ) -> Option<Box<dyn Editor>> {
     create_vizia_editor(editor_state, ViziaTheming::Custom, move |cx, _| {
-        Data {
-            params: params.clone(),
-        }
-        .build(cx);
+
         // AFAIK this should never fail on runtime. 
         cx.add_stylesheet(include_style!("src/style.css")).expect("Style sheet could not be opened");
         // UI Elements
@@ -47,19 +37,19 @@ pub(crate) fn create(
         HStack::new(cx, |cx|{
             VStack::new(cx, |cx| {
                 Label::new(cx, "Flanger");
-                ParamSlider::new(cx, Data::params, |params| &params.flanging);
+                ParamSlider::new(cx,&params.flanging);
                 Label::new(cx, "Dry Delay (Chaos)");
-                ParamSlider::new(cx, Data::params, |params| &params.chaos);
+                ParamSlider::new(cx, &params.chaos);
                 Label::new(cx, "Phaser");
-                ParamSlider::new(cx, Data::params, |params| &params.phasing);
+                ParamSlider::new(cx, &params.phasing);
             })
             .left(Stretch(1.0))
             .right(Stretch(1.0));
             VStack::new(cx, |cx| {
                 Label::new(cx, "Speed");
-                ParamSlider::new(cx, Data::params, |params| &params.speed);
+                ParamSlider::new(cx, &params.speed);
                 Label::new(cx, "Dry/Wet");
-                ParamSlider::new(cx, Data::params, |params| &params.strength);
+                ParamSlider::new(cx, &params.strength);
             })
             .left(Stretch(1.0))
             .right(Stretch(1.0));
