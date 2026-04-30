@@ -14,30 +14,40 @@
 
 use std::f32::consts;
 
-use crate::{biquad_filter, even_butterworth};
+use crate::audio::designed_filters;
 
 // Reducing this will reduce oscillator artifacts at the cost of memory.
 const LUT_BASE_FREQ: f32 = 3.0;
-// Length in seconds of crossfade applied when shifter is not in use 
-const CROSSFADE_LENGTH: f32 = 0.05;
 
 // A frequency shifter using the quadrature oscillator method  
 #[derive(Clone, Debug, Default)]
 pub struct FrequencyShifter{
-    low_pass_filters: [even_butterworth::EvenButterworth; 2],
-    upper_sample: f32,
-    lower_sample: f32,
-    first_osc: QuadratureOscillator,
-    second_osc: QuadratureOscillator,
+    third_method_shift: ThirdMethod,
     freq_shift: f32,
-    freq_static_osc: f32,
-    crossfade_length: u32,
-    crossfade_position: u32
+}
+
+impl FrequencyShifter{
+    //Process a single sample ruturning the output shifted in frequency 
+    pub fn process(&mut self, sample: f32) -> f32 {
+        2.0 * self.third_method_shift.process(sample)
+    }
+
+    //Prepares the shifter by configuring its elements according to the given sample frequency
+    pub fn initialize(&mut self) {
+        self.third_method_shift.initialize();
+    }
+
+    pub fn set_frequency(&mut self, frequency: f32){
+        self.freq_shift = frequency;
+    }
+    pub fn set_osc_samples(&mut self, samples: ((f32,f32),(f32,f32))){
+        self.third_method_shift.osc_samples = samples;
+    }
 }
 
 // An sine oscillator that provides two outputs with a difference of 90 degrees
 #[derive(Clone, Debug, Default)]
-pub struct QuadratureOscillator{
+struct QuadratureOscillator{
     lut: Vec<f32>,
     sin_index: usize,
     cos_index: usize,
@@ -93,17 +103,48 @@ impl QuadratureOscillator{
     }
 }
 
-impl FrequencyShifter{
-    //Process a single sample ruturning the output shifted in frequency 
-    pub fn process(&mut self, sample: f32) -> f32 {
-        //Bypass if not shifting nor crossfading
-        if self.freq_shift == 0.0 && self.crossfade_position == 0{
-            return sample;
-        }
+#[derive(Clone, Debug, Default)]
+pub struct FreqShiftOsc{
+    first_osc: QuadratureOscillator,
+    second_osc: QuadratureOscillator,
+    freq_static_osc: f32
+}
 
+impl FreqShiftOsc{
+    // Initilize the oscillator, filling the look-up table
+    pub fn initialize(&mut self, sample_rate: f32){
+        self.freq_static_osc = sample_rate * 0.25;
+        self.first_osc.initialize(sample_rate);
+        self.first_osc.set_frequency(self.freq_static_osc);
+        self.second_osc.initialize(sample_rate);
+        self.second_osc.set_frequency(self.freq_static_osc);
+    }
+
+    // Returns the next sin and cos sample for both quadrature oscillators
+    pub fn next(&mut self) -> ((f32,f32),(f32,f32)){
+        (self.first_osc.next(),self.second_osc.next())
+    }
+
+    // Sets the frequency shift frequency
+    pub fn set_frequency(&mut self, frequency: f32){
+        self.second_osc.set_frequency(self.freq_static_osc + frequency);
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+struct ThirdMethod{
+    low_pass_filters: [designed_filters::EllipFs4; 2],
+    upper_sample: f32,
+    lower_sample: f32,
+    osc_samples: ((f32,f32),(f32,f32)),
+}
+
+impl ThirdMethod{
+     //Process a single sample ruturning the output shifted in frequency 
+    pub fn process(&mut self, sample: f32) -> f32 {
         // Get quadrature samples
-        let (sin_1, cos_1) = self.first_osc.next();
-        let (sin_2, cos_2) = self.second_osc.next();
+        let (sin_1, cos_1) = self.osc_samples.0;
+        let (sin_2, cos_2) = self.osc_samples.1;
 
         // Upper branch of the frequency shifter
         self.upper_sample = sample * sin_1;
@@ -113,38 +154,13 @@ impl FrequencyShifter{
         self.lower_sample = sample * cos_1;
         self.lower_sample = self.low_pass_filters[1].process(self.lower_sample);
         self.lower_sample = self.lower_sample * cos_2;
-
-        if self.freq_shift == 0.0 {
-            self.crossfade_position -= 1;
-            let ratio = self.crossfade_position as f32 / self.crossfade_length as f32;
-            ratio * (self.upper_sample + self.lower_sample) + (1.0 - ratio) * sample
-        } else if self.crossfade_position != self.crossfade_length{
-            self.crossfade_position += 1;
-            let ratio = self.crossfade_position as f32 / self.crossfade_length as f32;
-            ratio * (self.upper_sample + self.lower_sample) + (1.0 - ratio) * sample
-        }else{
-            self.upper_sample + self.lower_sample
-        }
+        self.upper_sample + self.lower_sample
     }
 
     //Prepares the shifter by configuring its elements according to the given sample frequency
-    pub fn initialize(&mut self, sample_rate: f32) {
-        self.crossfade_length = (CROSSFADE_LENGTH * sample_rate).ceil() as u32;
-        self.crossfade_position = 0;
-        self.freq_static_osc = sample_rate * 0.25;
+    pub fn initialize(&mut self) {
         for filter in &mut self.low_pass_filters{
-            filter.initialize(biquad_filter::Order::Sixth);
-            filter.low_pass(sample_rate,self.freq_static_osc);
+            filter.initialize();
         }
-
-        self.first_osc.initialize(sample_rate);
-        self.first_osc.set_frequency(self.freq_static_osc);
-        self.second_osc.initialize(sample_rate);
-        self.second_osc.set_frequency(self.freq_static_osc);
-    }
-
-    pub fn set_frequency(&mut self, frequency: f32){
-        self.freq_shift = frequency;
-        self.second_osc.set_frequency(self.freq_static_osc + frequency);
     }
 }

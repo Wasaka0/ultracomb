@@ -17,23 +17,16 @@ use vizia_plug::ViziaState;
 use std::sync::Arc;
 
 mod editor;
-mod ring_buffer;
-mod audio_utility;
-mod biquad_filter;
-mod even_butterworth;
-mod frequency_shifter;
+mod audio;
+mod ultracomb;
 
-const MAX_DELAY_TIME: f32 = 30.0;
-const STRRENGTH_SCALE: f32 = 0.005;
-const DELAY_SCALE: f32 = 30.0;
-const FREQ_SHIFT_SCALE: f32 = 0.05;
+const STRENGTH_SCALE: f32 = 0.01;
+const MAX_FREQ_SHIFT: f32 = 30.0;
 
 struct Ultracomb {
     params: Arc<UltracombParams>,
-    all_pass_cascade: Vec<biquad_filter::BiquadCascade>,
-    wet_delay_buffers: Vec<ring_buffer::RingBuffer>,
-    dry_delay_buffers: Vec<ring_buffer::RingBuffer>,
-    freq_shifters: Vec<frequency_shifter::FrequencyShifter>,
+    ultracomb: Vec<ultracomb::Effect>,
+    pub fx_settings: ultracomb::Settings,
     sampling_frequency: f32,
     editor_state: Arc<ViziaState>
 }
@@ -50,16 +43,16 @@ struct UltracombParams {
     pub chaos: FloatParam,
     #[id = "speed"]
     pub speed: FloatParam,
+    #[id = "multiplier"]
+    pub multiplier: FloatParam,
 }
 
 impl Default for Ultracomb {
     fn default() -> Self {
         Self {
             params: Arc::new(UltracombParams::default()),
-            all_pass_cascade: Default::default(),
-            wet_delay_buffers: Default::default(),
-            dry_delay_buffers: Default::default(),
-            freq_shifters: Default::default(),
+            ultracomb: Default::default(),
+            fx_settings: Default::default(),
             sampling_frequency: Default::default(),
             editor_state: editor::default_state()
         }
@@ -98,7 +91,7 @@ impl Default for UltracombParams {
                 0.0,
                 FloatRange::Skewed{
                     min: 0.0,
-                    max: DELAY_SCALE,
+                    max: ultracomb::MAX_DELAY_TIME,
                     factor: FloatRange::skew_factor(-1.5)
                 },
             )
@@ -110,7 +103,7 @@ impl Default for UltracombParams {
                 0.0,
                 FloatRange::Skewed{
                     min: 0.0,
-                    max: DELAY_SCALE,
+                    max: ultracomb::MAX_DELAY_TIME,
                     factor: FloatRange::skew_factor(-1.5)
                 },
             )
@@ -121,13 +114,21 @@ impl Default for UltracombParams {
                 "Speed",
                 0.0,
                 FloatRange::Linear {
-                    min: -100.0,
-                    max: 100.0,
+                    min: -MAX_FREQ_SHIFT,
+                    max: MAX_FREQ_SHIFT,
                 },
             )
             .with_step_size(0.1)
             .with_smoother(SmoothingStyle::Linear(100.0))
-            .with_unit(" Hz")
+            .with_unit(" Hz"),
+            multiplier: FloatParam::new(
+                "Multiplier",
+                1.0,
+                FloatRange::Linear { min: 1.0, max: ultracomb::MAX_STACK as f32}
+            )
+            .with_smoother(SmoothingStyle::Linear(50.0))
+            .with_unit(" times")
+            .with_step_size(0.05)
         }
     }
 }
@@ -191,38 +192,20 @@ impl Plugin for Ultracomb {
             .main_output_channels
             .expect("Plugin does not have a main output")
             .get() as usize;
-        //Create ring buffers
-        self.wet_delay_buffers = Vec::new();
-        self.dry_delay_buffers = Vec::new();
-        self.freq_shifters = Vec::new();
         self.sampling_frequency = _buffer_config.sample_rate;
+        //Create effect for each channel
+        self.ultracomb = Vec::new();
         for _n in 0..num_output_channels{
-            // Initialize Ring Buffers
-            let mut wet = ring_buffer::RingBuffer::default();
-            wet.resize(_buffer_config.sample_rate, MAX_DELAY_TIME);
-            self.wet_delay_buffers.push(wet);
-            let mut dry = ring_buffer::RingBuffer::default();
-            dry.resize(_buffer_config.sample_rate, MAX_DELAY_TIME);
-            self.dry_delay_buffers.push(dry);
-            // All-pass filters
-            let mut pass = biquad_filter::BiquadCascade::default();
-            pass.initialize(biquad_filter::Order::Thirty);
-            self.all_pass_cascade.push(pass);
-            // Initialize Frequency Shifters 
-            let mut shifter = frequency_shifter::FrequencyShifter::default();
-            shifter.initialize(_buffer_config.sample_rate);
-            self.freq_shifters.push(shifter);
+            let mut channel: ultracomb::Effect = Default::default();
+            channel.initialize(self.sampling_frequency);
+            self.ultracomb.push(channel);
         }
         true
     }
 
     fn reset(&mut self) {
-        for buffer in self.wet_delay_buffers.iter_mut(){
-            buffer.reset();
-        }
-        for buffer in self.dry_delay_buffers.iter_mut(){
-            buffer.reset();
-        }
+        // Reset buffers and envelopes here. This can be called from the audio thread and may not
+        // allocate. You can remove this function if you do not need it.
     }
 
     fn process(
@@ -234,23 +217,19 @@ impl Plugin for Ultracomb {
         //Loop for each sample
         for mut sample_per_channel in buffer.iter_samples() {
             // Parameter smoothing happens per sample
-            let dry_delay = self.params.chaos.smoothed.next();
-            let delay = self.params.flanging.smoothed.next();
+            self.fx_settings.dry_delay = self.params.chaos.smoothed.next();
+            self.fx_settings.delay = self.params.flanging.smoothed.next();
             let phase = self.params.phasing.smoothed.next();
-            let phase_freq = if phase < 10.0 {20000.0 - 1000.0 * phase} else if phase < 30.0 { 10000.0 - (phase - 10.0) * 250.0} else if phase < 70.0 { 5000.0 - (phase - 30.0) * 100.0}  else {1000.0 - (phase - 70.0) * 30.0};
-            let phase_q = if phase < 10.0 {30.0 - 2.5 * phase} else if phase < 50.0 {5.0 - (phase - 10.0) * 0.075} else if phase < 70.0 { 2.0 - (phase - 50.0) * 0.05} else {1.0 - (phase - 70.0) * 0.0323};
-            let strength = self.params.strength.smoothed.next() * STRRENGTH_SCALE;
-            let freq_shift = self.params.speed.smoothed.next() * FREQ_SHIFT_SCALE;
+            self.fx_settings.phaser_freq = if phase < 10.0 {20000.0 - 1000.0 * phase} else if phase < 30.0 { 10000.0 - (phase - 10.0) * 250.0} else if phase < 70.0 { 5000.0 - (phase - 30.0) * 100.0}  else {1000.0 - (phase - 70.0) * 30.0};
+            self.fx_settings.phaser_q = if phase < 10.0 {30.0 - 2.5 * phase} else if phase < 50.0 {5.0 - (phase - 10.0) * 0.075} else if phase < 70.0 { 2.0 - (phase - 50.0) * 0.05} else {1.0 - (phase - 70.0) * 0.0323};
+            let strength = self.params.strength.smoothed.next() * STRENGTH_SCALE;
+            self.fx_settings.freq_shift = self.params.speed.smoothed.next();
+            self.fx_settings.multiplier = self.params.multiplier.smoothed.next();
             //Loop for each channel
-            for ((((sample,wet_buffer),shifter),dry_buffer),all_pass) in sample_per_channel.iter_mut().zip(self.wet_delay_buffers.iter_mut()).zip(self.freq_shifters.iter_mut()).zip(self.dry_delay_buffers.iter_mut()).zip(self.all_pass_cascade.iter_mut()){
-                wet_buffer.set_delay_ms(delay);
-                dry_buffer.set_delay_ms(dry_delay);
-                shifter.set_frequency(freq_shift);
-                all_pass.all_pass(self.sampling_frequency, phase_freq,phase_q);
-                let mut wet = wet_buffer.process(*sample);
-                wet = all_pass.process(wet);
-                wet = shifter.process(wet);
-                *sample = audio_utility::process_linear_dry_wet(dry_buffer.process(*sample),wet,strength);
+            for (sample,ultracomb) in sample_per_channel.iter_mut().zip(self.ultracomb.iter_mut()){
+                ultracomb.set_settings(self.fx_settings);
+                let wet = ultracomb.process(*sample);                
+                *sample = audio::utility::process_linear_dry_wet(*sample,wet,strength);
             }
         }
         ProcessStatus::Normal
