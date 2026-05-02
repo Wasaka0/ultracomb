@@ -25,6 +25,7 @@ jobs:
   compile:
     needs: [get-version]
     strategy:
+      fail-fast: false
       matrix:
         include:
           - { name: windows, os: windows-latest }
