@@ -1,4 +1,4 @@
-use nih_plug::prelude::{Editor};
+use nice_plug::prelude::{Editor};
 use vizia_plug::vizia::{prelude::*};
 use vizia_plug::widgets::*;
 use vizia_plug::{ create_vizia_editor, ViziaState, ViziaTheming};

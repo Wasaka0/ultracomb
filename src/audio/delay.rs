@@ -12,7 +12,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see https://www.gnu.org/licenses/.
 
-use nih_plug::debug::nih_debug_assert;
+use nice_plug::debug::nice_debug_assert;
 
 // A circular buffer that allows delayed read
 #[derive(Clone, Debug, Default)]
@@ -30,8 +30,8 @@ pub struct Delay{
 impl Delay {
     //Resizes and resets the buffer
     pub fn resize(&mut self, sample_rate: f32, max_delay: f32) {
-        nih_debug_assert!(max_delay > 0.0);
-        nih_debug_assert!(sample_rate > 0.0);
+        nice_debug_assert!(max_delay > 0.0);
+        nice_debug_assert!(sample_rate > 0.0);
 
         self.sample_rate = sample_rate;
         self.buffer_size = (sample_rate * max_delay).ceil() as usize;
