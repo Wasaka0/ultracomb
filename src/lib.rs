@@ -26,6 +26,7 @@ const MAX_FREQ_SHIFT: f32 = 30.0;
 struct Ultracomb {
     params: Arc<UltracombParams>,
     ultracomb: Vec<ultracomb::Ultracomb>,
+    crossover: Vec<audio::three_way_crossover::ThreeWayCrossover>,
     pub fx_settings: ultracomb::Settings,
     sampling_frequency: f32,
     editor_state: Arc<ViziaState>
@@ -52,6 +53,7 @@ impl Default for Ultracomb {
         Self {
             params: Arc::new(UltracombParams::default()),
             ultracomb: Default::default(),
+            crossover: Default::default(),
             fx_settings: Default::default(),
             sampling_frequency: Default::default(),
             editor_state: editor::default_state()
@@ -199,6 +201,10 @@ impl Plugin for Ultracomb {
             let mut channel: ultracomb::Ultracomb = Default::default();
             channel.initialize(self.sampling_frequency);
             self.ultracomb.push(channel);
+
+            let mut cross: audio::three_way_crossover::ThreeWayCrossover = Default::default();
+            cross.initialize(self.sampling_frequency);
+            self.crossover.push(cross);
         }
         true
     }
@@ -226,10 +232,11 @@ impl Plugin for Ultracomb {
             self.fx_settings.freq_shift = self.params.speed.smoothed.next();
             self.fx_settings.multiplier = self.params.multiplier.smoothed.next();
             //Loop for each channel
-            for (sample,ultracomb) in sample_per_channel.iter_mut().zip(self.ultracomb.iter_mut()){
+            for ((sample,ultracomb),crossover) in sample_per_channel.iter_mut().zip(self.ultracomb.iter_mut()).zip(self.crossover.iter_mut()){
                 ultracomb.set_settings(self.fx_settings);
-                let wet = ultracomb.process(*sample);                
-                *sample = audio::utility::process_linear_dry_wet(*sample,wet,strength);
+                let bands = crossover.process(*sample);
+                let wet = ultracomb.process(bands.1);                
+                *sample = audio::utility::process_linear_dry_wet(bands.1,wet,strength) + bands.0 + bands.2;
             }
         }
         ProcessStatus::Normal
