@@ -60,7 +60,7 @@ impl EffectChain{
         self.dry_buffer.resize(self.sample_rate, MAX_DELAY_TIME);
         // All-pass filters
         self.all_pass = Default::default();
-        self.all_pass.initialize(biquad_filter::Order::Thirty);
+        self.all_pass.initialize(30);
         // Initialize Frequency Shifters 
         self.freq_shifter = Default::default();
         self.freq_shifter.initialize();

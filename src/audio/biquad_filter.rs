@@ -123,16 +123,6 @@ pub struct BiquadCascade{
     sample: f32
 }
 
-#[derive(Clone, Copy, Debug, Default)]
-pub enum Order{
-    #[default]
-    Second,
-    Forth,
-    Sixth,
-    Thirty,
-    Sixteenth
-}
-
 impl BiquadCascade {
     //Process a single input sample returning the filter output
     pub fn process(&mut self, sample: f32) -> f32 {
@@ -152,24 +142,8 @@ impl BiquadCascade {
         self.sample = 0.0;
     }
 
-    pub fn initialize(&mut self, order: Order){
-        let n = match order{
-            Order::Second => {
-                1
-            }
-            Order::Forth => {
-                2
-            }
-            Order::Sixth => {
-                3
-            }
-            Order::Thirty => {
-                15
-            }
-            Order::Sixteenth => {
-                8
-            }
-        };
+    pub fn initialize(&mut self, order: u32){
+        let n = order/2;
         self.biquads = Vec::new();
         for _i in 0..n{
             let mut filter = BiquadFilter::default();

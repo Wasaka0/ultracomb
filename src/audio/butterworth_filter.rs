@@ -18,7 +18,7 @@ use crate::audio::biquad_filter;
 #[derive(Clone,Debug, Default)]
 pub struct Butterworth{
     cascade: biquad_filter::BiquadCascade,
-    order: biquad_filter::Order
+    order: u32
 }
 
 impl Butterworth{
@@ -26,7 +26,7 @@ impl Butterworth{
         self.cascade.process(sample)
     }
 
-    pub fn initialize(&mut self, order: biquad_filter::Order){
+    pub fn initialize(&mut self, order: u32){
         self.order = order;
         self.cascade.initialize(order);
     }
@@ -36,20 +36,20 @@ impl Butterworth{
         self.cascade.low_pass(sampling_frequency, center_frequency, q);
     }
 
-    fn get_q(order: biquad_filter::Order) -> Vec<f32>{
+    fn get_q(order: u32) -> Vec<f32>{
         match order{
-            biquad_filter::Order::Second => {
+            2 => {
                 return vec![0.70710678];
             }
-            biquad_filter::Order::Forth => {
+            4 => {
                 return vec![0.54119610, 1.3065630];
             }
-            biquad_filter::Order::Sixth => {
+            6 => {
                 return vec![0.51763809, 0.70710678, 1.9318517];
             }
-            biquad_filter::Order::Thirty => todo!(),
-            biquad_filter::Order::Sixteenth => todo!()
+            _ => {
+                panic!();
+            }
         }
     }
-
 }

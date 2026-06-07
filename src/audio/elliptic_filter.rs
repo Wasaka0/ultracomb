@@ -26,7 +26,7 @@ impl EllipFs4{
     }
 
     pub fn initialize(&mut self){
-        self.cascade.initialize(biquad_filter::Order::Sixteenth);
+        self.cascade.initialize(16);
         self.cascade.coeffs(0, 0.022093670046893908, 0.038679037689662396, 0.02209367004689391, -0.9701746143627674, 0.34064054889792633);
         self.cascade.coeffs(1, 1.0, 0.7888712019543745, 0.9999999999999999, -0.5322394506915348, 0.6377500488074569);
         self.cascade.coeffs(2, 1.0, 0.28565082322191526, 0.9999999999999999, -0.2160322072785441, 0.8522767976110504);
