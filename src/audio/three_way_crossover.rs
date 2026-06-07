@@ -56,12 +56,15 @@ impl ThreeWayCrossover{
             filter.initialize(2);
         }
         self.sampling_frequency = sampling_frequency;
-        self.set_frequencies(1000.0, 4000.0);
     }
 
     pub fn set_frequencies(&mut self, low_cut: f32, high_cut: f32){
         self.low_freq = low_cut;
-        self.high_freq = high_cut;
+        if low_cut > high_cut{
+            self.high_freq = low_cut;
+        } else{
+            self.high_freq = high_cut;
+        }
 
         self.lo[0].low_pass(self.sampling_frequency, self.low_freq);
         self.lo[1].low_pass(self.sampling_frequency, self.low_freq);

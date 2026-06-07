@@ -15,7 +15,7 @@ impl Model for Data {}
 
 // Makes sense to also define this here, makes it a bit easier to keep track of
 pub(crate) fn default_state() -> Arc<ViziaState> {
-    ViziaState::new(|| (400, 200))
+    ViziaState::new(|| (400, 250))
 }
 
 pub(crate) fn create(
@@ -57,13 +57,17 @@ pub(crate) fn create(
                 ParamSlider::new(cx, Data::params, |params| &params.chaos);
                 Label::new(cx, "Phaser");
                 ParamSlider::new(cx, Data::params, |params| &params.phasing);
+                Label::new(cx, "Speed");
+                ParamSlider::new(cx, Data::params, |params| &params.speed);
             })
             .row_between(Pixels(1.0))
             .child_left(Stretch(1.0))
             .child_right(Stretch(1.0));
             VStack::new(cx, |cx| {
-                Label::new(cx, "Speed");
-                ParamSlider::new(cx, Data::params, |params| &params.speed);
+                Label::new(cx, "Low-Cut");
+                ParamSlider::new(cx, Data::params, |params| &params.low);
+                Label::new(cx, "High-Cut");
+                ParamSlider::new(cx, Data::params, |params| &params.high);
                 Label::new(cx, "Dry/Wet");
                 ParamSlider::new(cx, Data::params, |params| &params.strength);
                 Label::new(cx, "Multiplier");
