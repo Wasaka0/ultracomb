@@ -12,9 +12,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see https://www.gnu.org/licenses/.
 
-pub mod all_pass;
 pub mod delay;
 pub mod utility;
 pub mod biquad_filter;
-pub mod designed_filters;
+pub mod butterworth_filter;
+pub mod elliptic_filter;
 pub mod frequency_shifter;

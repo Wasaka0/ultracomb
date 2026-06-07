@@ -14,7 +14,7 @@
 
 use std::f32::consts;
 
-use crate::audio::designed_filters;
+use crate::audio::elliptic_filter;
 
 // Reducing this will reduce oscillator artifacts at the cost of memory.
 const LUT_BASE_FREQ: f32 = 3.0;
@@ -133,7 +133,7 @@ impl FreqShiftOsc{
 
 #[derive(Clone, Debug, Default)]
 struct ThirdMethod{
-    low_pass_filters: [designed_filters::EllipFs4; 2],
+    low_pass_filters: [elliptic_filter::EllipFs4; 2],
     upper_sample: f32,
     lower_sample: f32,
     osc_samples: ((f32,f32),(f32,f32)),
