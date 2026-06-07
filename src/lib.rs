@@ -25,7 +25,7 @@ const MAX_FREQ_SHIFT: f32 = 30.0;
 
 struct Ultracomb {
     params: Arc<UltracombParams>,
-    ultracomb: Vec<ultracomb::Effect>,
+    ultracomb: Vec<ultracomb::Ultracomb>,
     pub fx_settings: ultracomb::Settings,
     sampling_frequency: f32,
     editor_state: Arc<ViziaState>
@@ -196,7 +196,7 @@ impl Plugin for Ultracomb {
         //Create effect for each channel
         self.ultracomb = Vec::new();
         for _n in 0..num_output_channels{
-            let mut channel: ultracomb::Effect = Default::default();
+            let mut channel: ultracomb::Ultracomb = Default::default();
             channel.initialize(self.sampling_frequency);
             self.ultracomb.push(channel);
         }

@@ -21,7 +21,7 @@ pub const MAX_STACK: usize = 16;
 const CROSSFADE_LENGTH: f32 = 0.05;
 
 #[derive(Clone, Debug, Default)]
-pub struct Effect{
+pub struct Ultracomb{
     chain: [EffectChain; MAX_STACK],
     freq_shift_osc: frequency_shifter::FreqShiftOsc,
     freq_shift_fade_ratio: f32,
@@ -88,7 +88,7 @@ impl EffectChain{
     }
 }
 
-impl Effect{
+impl Ultracomb{
     pub fn initialize(&mut self, sample_rate: f32){
         for effect in &mut self.chain{
             effect.initialize(sample_rate);
