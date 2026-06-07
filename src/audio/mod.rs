@@ -15,5 +15,6 @@
 pub mod delay;
 pub mod utility;
 pub mod biquad_filter;
-pub mod designed_filters;
+pub mod butterworth_filter;
+pub mod elliptic_filter;
 pub mod frequency_shifter;

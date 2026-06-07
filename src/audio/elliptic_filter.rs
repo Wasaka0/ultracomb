@@ -14,46 +14,6 @@
 
 use crate::audio::biquad_filter;
 
-// Butterworth filter of even order build with biquad cascade
-#[derive(Clone,Debug, Default)]
-pub struct Butterworth{
-    cascade: biquad_filter::BiquadCascade,
-    order: biquad_filter::Order
-}
-
-impl Butterworth{
-    pub fn process(&mut self, sample: f32) -> f32 {
-        self.cascade.process(sample)
-    }
-
-    pub fn initialize(&mut self, order: biquad_filter::Order){
-        self.order = order;
-        self.cascade.initialize(order);
-    }
-
-    pub fn low_pass(&mut self, sampling_frequency: f32, center_frequency: f32) {
-        let q = Self::get_q(self.order);
-        self.cascade.low_pass(sampling_frequency, center_frequency, q);
-    }
-
-    fn get_q(order: biquad_filter::Order) -> Vec<f32>{
-        match order{
-            biquad_filter::Order::Second => {
-                return vec![0.70710678];
-            }
-            biquad_filter::Order::Forth => {
-                return vec![0.54119610, 1.3065630];
-            }
-            biquad_filter::Order::Sixth => {
-                return vec![0.51763809, 0.70710678, 1.9318517];
-            }
-            biquad_filter::Order::Thirty => todo!(),
-            biquad_filter::Order::Sixteenth => todo!()
-        }
-    }
-
-}
-
 // Elliptic filter of 16th order at fs/4, more details at filter-design/ellip.py
 #[derive(Clone,Debug, Default)]
 pub struct EllipFs4{
