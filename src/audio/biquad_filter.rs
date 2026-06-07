@@ -173,7 +173,6 @@ impl BiquadCascade {
     // but with individual q. Size of vector q must at least half the order given at initialize.
     pub fn low_pass(&mut self, sampling_frequency: f32, center_frequency: f32, q: Vec<f32>) {
         for (filter, q) in self.biquads.iter_mut().zip(q){
-            filter.reset();
             filter.low_pass(sampling_frequency, center_frequency, q);
         }
     }
@@ -182,14 +181,12 @@ impl BiquadCascade {
     // but with individual q. Size of vector q must at least half the order given at initialize.
     pub fn high_pass(&mut self, sampling_frequency: f32, center_frequency: f32, q: Vec<f32>) {
         for (filter, q) in self.biquads.iter_mut().zip(q){
-            filter.reset();
             filter.high_pass(sampling_frequency, center_frequency, q);
         }
     }
 
     // Sets the coefficients for the chosen stage of the biquad cascade.
     pub fn coeffs(&mut self, stage: usize, b0: f32, b1: f32, b2: f32, a1: f32, a2: f32) {
-        self.biquads[stage].reset();
         self.biquads[stage].coeffs(BiquadCoefficients { b0, b1, b2, a1, a2});
     }
 
