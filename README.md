@@ -35,10 +35,11 @@ cargo xtask bundle ultracomb --release
         - [x] Fade-in and out
         - [x] Try other frequency shifting methods e.g. Hilbert Filter
             - [x] Tried without clear improvement right away
-        - [ ] Solve problems with DC, pre filtering might be enough
+        - [x] Solve problems with DC, pre filtering might be enough
     - [ ] Gain compensation
         - [x] For Frequency shifter
         - [ ] For Flanger/Phaser only
+    - [x] High-cut/Low-cut effect filtering (3 Band crossover filter)
     - [x] Effect multiplier
 - [ ] CD
     - [x] Windows

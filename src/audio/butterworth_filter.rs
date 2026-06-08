@@ -36,6 +36,12 @@ impl Butterworth{
         self.cascade.low_pass(sampling_frequency, center_frequency, q);
     }
 
+    pub fn high_pass(&mut self, sampling_frequency: f32, center_frequency: f32) {
+        let q = Self::get_q(self.order);
+        self.cascade.high_pass(sampling_frequency, center_frequency, q);
+    }
+
+
     fn get_q(order: u32) -> Vec<f32>{
         match order{
             2 => {
