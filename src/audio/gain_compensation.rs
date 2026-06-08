@@ -12,7 +12,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see https://www.gnu.org/licenses/.
 
-const MEASUREMENT_TIME: f32 = 0.050;
+// const MEASUREMENT_TIME: f32 = 0.0020;
+const MEASUREMENT_TIME: f32 = 0.01;
 
 // 4th order Three way crossover filter
 #[derive(Clone,Debug, Default)]
@@ -32,7 +33,7 @@ struct CompState{
 impl CompState{
     pub fn write(&mut self, sample: f32){
         self.sum -= self.samples[self.index];
-        self.samples[self.index] = sample * sample;
+        self.samples[self.index] = sample;
         self.sum += self.samples[self.index];
         self.index += 1;
         if self.index == self.samples.len() {
@@ -65,8 +66,10 @@ impl GainCompensation{
     }
 
     pub fn get_gain(&self) -> f32 {
-        let pre_rms = (self.pre.sum / self.num_samples as f32).sqrt();
-        let post_rms = (self.post.sum / self.num_samples as f32).sqrt();
-        pre_rms / post_rms
+        let pre_max = self.pre.samples.iter().cloned().fold(0./0., f32::max);
+        let post_max = self.post.samples.iter().cloned().fold(0./0., f32::max);
+        let pre_min = self.pre.samples.iter().cloned().fold(1./0. /* inf */, f32::min);
+        let post_min = self.post.samples.iter().cloned().fold(1./0. /* inf */, f32::min);
+        ((pre_max - pre_min)/(post_max - post_min)).clamp(0.0, 10.0)
     }
 }
