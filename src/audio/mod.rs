@@ -17,4 +17,5 @@ pub mod utility;
 pub mod biquad_filter;
 pub mod butterworth_filter;
 pub mod elliptic_filter;
+pub mod three_way_crossover;
 pub mod frequency_shifter;

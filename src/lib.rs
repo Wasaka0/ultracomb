@@ -22,10 +22,13 @@ mod ultracomb;
 
 const STRENGTH_SCALE: f32 = 0.01;
 const MAX_FREQ_SHIFT: f32 = 30.0;
+const MIN_FILTER_FREQ: f32 = 30.0;
+const MAX_FILTER_FREQ: f32 = 20000.0;
 
 struct Ultracomb {
     params: Arc<UltracombParams>,
     ultracomb: Vec<ultracomb::Ultracomb>,
+    crossover: Vec<audio::three_way_crossover::ThreeWayCrossover>,
     pub fx_settings: ultracomb::Settings,
     sampling_frequency: f32,
     editor_state: Arc<ViziaState>
@@ -45,6 +48,10 @@ struct UltracombParams {
     pub speed: FloatParam,
     #[id = "multiplier"]
     pub multiplier: FloatParam,
+    #[id = "low-cut"]
+    pub low: FloatParam,
+    #[id = "high-cut"]
+    pub high: FloatParam,
 }
 
 impl Default for Ultracomb {
@@ -52,6 +59,7 @@ impl Default for Ultracomb {
         Self {
             params: Arc::new(UltracombParams::default()),
             ultracomb: Default::default(),
+            crossover: Default::default(),
             fx_settings: Default::default(),
             sampling_frequency: Default::default(),
             editor_state: editor::default_state()
@@ -128,7 +136,23 @@ impl Default for UltracombParams {
             )
             .with_smoother(SmoothingStyle::Linear(50.0))
             .with_unit(" times")
-            .with_step_size(0.05)
+            .with_step_size(0.05),
+            low: FloatParam::new(
+                "Low-Cut",
+                MIN_FILTER_FREQ,
+                FloatRange::Skewed { min: MIN_FILTER_FREQ, max: MAX_FILTER_FREQ, factor: FloatRange::skew_factor(-2.0)}
+            )
+            .with_smoother(SmoothingStyle::Linear(50.0))
+            .with_value_to_string(formatters::v2s_f32_rounded(1))
+            .with_unit(" Hz"),
+            high: FloatParam::new(
+                "High-Cut",
+                MAX_FILTER_FREQ,
+                FloatRange::Skewed { min: MIN_FILTER_FREQ, max: MAX_FILTER_FREQ, factor: FloatRange::skew_factor(-2.0)}
+            )
+            .with_smoother(SmoothingStyle::Linear(50.0))
+            .with_value_to_string(formatters::v2s_f32_rounded(1))
+            .with_unit(" Hz")
         }
     }
 }
@@ -199,6 +223,10 @@ impl Plugin for Ultracomb {
             let mut channel: ultracomb::Ultracomb = Default::default();
             channel.initialize(self.sampling_frequency);
             self.ultracomb.push(channel);
+
+            let mut cross: audio::three_way_crossover::ThreeWayCrossover = Default::default();
+            cross.initialize(self.sampling_frequency);
+            self.crossover.push(cross);
         }
         true
     }
@@ -225,11 +253,17 @@ impl Plugin for Ultracomb {
             let strength = self.params.strength.smoothed.next() * STRENGTH_SCALE;
             self.fx_settings.freq_shift = self.params.speed.smoothed.next();
             self.fx_settings.multiplier = self.params.multiplier.smoothed.next();
+            let low_cut = self.params.low.smoothed.next();
+            let high_cut = self.params.high.smoothed.next();
             //Loop for each channel
-            for (sample,ultracomb) in sample_per_channel.iter_mut().zip(self.ultracomb.iter_mut()){
+            for ((sample,ultracomb),crossover) in sample_per_channel.iter_mut().zip(self.ultracomb.iter_mut()).zip(self.crossover.iter_mut()){
                 ultracomb.set_settings(self.fx_settings);
-                let wet = ultracomb.process(*sample);                
-                *sample = audio::utility::process_linear_dry_wet(*sample,wet,strength);
+                crossover.set_frequencies(low_cut, high_cut);
+                let bands = crossover.process(*sample);
+                let wet = ultracomb.process(bands.1);                
+                *sample = audio::utility::process_linear_dry_wet(bands.1,wet,strength) + bands.0 + bands.2;
+                //*sample = audio::utility::process_linear_dry_wet(bands.1,wet,strength);
+                // *sample = bands.0 + bands.2;
             }
         }
         ProcessStatus::Normal

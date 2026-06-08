@@ -111,6 +111,23 @@ impl BiquadFilter {
         self.coefficients = BiquadCoefficients { b0, b1, b2, a1, a2};
     }
 
+    //Calculates the coefficients for a high pass filter.
+    pub fn high_pass(&mut self, sampling_frequency: f32, center_frequency: f32, q: f32) {
+        let w0 = consts::TAU * (center_frequency / sampling_frequency);
+        let alpha = w0.sin() / (2.0 * q);
+        let cos_w0 = w0.cos();
+        
+        let a0 = 1.0 + alpha;
+        
+        let b0 = (1.0 + cos_w0) / (2.0 * a0);
+        let b1 = -(1.0 + cos_w0) / a0;
+        let b2 = b0;
+        
+        let a1 = (-2.0 * cos_w0) / a0;
+        let a2 = (1.0 - alpha) / a0;
+        self.coefficients = BiquadCoefficients { b0, b1, b2, a1, a2};
+    }
+
     //Sets the coefficients of the filter directly.
     fn coeffs(&mut self, c: BiquadCoefficients) {
         self.coefficients = c;
@@ -156,14 +173,20 @@ impl BiquadCascade {
     // but with individual q. Size of vector q must at least half the order given at initialize.
     pub fn low_pass(&mut self, sampling_frequency: f32, center_frequency: f32, q: Vec<f32>) {
         for (filter, q) in self.biquads.iter_mut().zip(q){
-            filter.reset();
             filter.low_pass(sampling_frequency, center_frequency, q);
+        }
+    }
+
+    // Calculates the coefficients for a low pass filter cascade all with the same cut-off frequency
+    // but with individual q. Size of vector q must at least half the order given at initialize.
+    pub fn high_pass(&mut self, sampling_frequency: f32, center_frequency: f32, q: Vec<f32>) {
+        for (filter, q) in self.biquads.iter_mut().zip(q){
+            filter.high_pass(sampling_frequency, center_frequency, q);
         }
     }
 
     // Sets the coefficients for the chosen stage of the biquad cascade.
     pub fn coeffs(&mut self, stage: usize, b0: f32, b1: f32, b2: f32, a1: f32, a2: f32) {
-        self.biquads[stage].reset();
         self.biquads[stage].coeffs(BiquadCoefficients { b0, b1, b2, a1, a2});
     }
 
