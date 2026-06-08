@@ -262,8 +262,6 @@ impl Plugin for Ultracomb {
                 let bands = crossover.process(*sample);
                 let wet = ultracomb.process(bands.1);                
                 *sample = audio::utility::process_linear_dry_wet(bands.1,wet,strength) + bands.0 + bands.2;
-                //*sample = audio::utility::process_linear_dry_wet(bands.1,wet,strength);
-                // *sample = bands.0 + bands.2;
             }
         }
         ProcessStatus::Normal
