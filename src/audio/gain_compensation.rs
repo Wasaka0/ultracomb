@@ -12,8 +12,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see https://www.gnu.org/licenses/.
 
-// const MEASUREMENT_TIME: f32 = 0.0020;
-const MEASUREMENT_TIME: f32 = 0.01;
+//Measurement time equals half a cycle of the lowest frequency the effect takes in 30Hz
+const MEASUREMENT_TIME: f32 = 0.016;
 
 // 4th order Three way crossover filter
 #[derive(Clone,Debug, Default)]
@@ -27,14 +27,29 @@ pub struct GainCompensation{
 struct CompState{
     pub samples: Vec<f32>,
     index: usize,
-    sum: f32
+    max: f32,
+    min: f32,
 }
 
 impl CompState{
     pub fn write(&mut self, sample: f32){
-        self.sum -= self.samples[self.index];
-        self.samples[self.index] = sample;
-        self.sum += self.samples[self.index];
+        //Check if new sample is min or max
+        if sample > self.max {
+            self.max = sample;
+        } else if sample < self.min {
+            self.min = sample;
+        }
+        //Store new sample
+        if self.samples[self.index] == self.max {
+            self.samples[self.index] = sample;
+            self.max = self.samples.iter().cloned().fold(0./0., f32::max);
+        } else if self.samples[self.index] == self.min {
+            self.samples[self.index] = sample;
+            self.min = self.samples.iter().cloned().fold(1./0. /* inf */, f32::min);
+        } else {
+            self.samples[self.index] = sample;
+        }
+        //Move index
         self.index += 1;
         if self.index == self.samples.len() {
             self.index = 0;
@@ -43,7 +58,8 @@ impl CompState{
 
     pub fn initialize(&mut self, length: usize){
         self.samples = vec![0.0; length];
-        self.sum = 0.0;
+        self.max = -f32::INFINITY;
+        self.min = f32::INFINITY;
         self.index = 0;
     }
 
@@ -66,10 +82,6 @@ impl GainCompensation{
     }
 
     pub fn get_gain(&self) -> f32 {
-        let pre_max = self.pre.samples.iter().cloned().fold(0./0., f32::max);
-        let post_max = self.post.samples.iter().cloned().fold(0./0., f32::max);
-        let pre_min = self.pre.samples.iter().cloned().fold(1./0. /* inf */, f32::min);
-        let post_min = self.post.samples.iter().cloned().fold(1./0. /* inf */, f32::min);
-        ((pre_max - pre_min)/(post_max - post_min)).clamp(0.0, 10.0)
+        ((self.pre.max - self.pre.min)/(self.post.max - self.post.min)).clamp(0.0, 10.0)
     }
 }
