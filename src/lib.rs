@@ -29,6 +29,7 @@ struct Ultracomb {
     params: Arc<UltracombParams>,
     ultracomb: Vec<ultracomb::Ultracomb>,
     crossover: Vec<audio::three_way_crossover::ThreeWayCrossover>,
+    gain: Vec<audio::gain_compensation::GainCompensation>,
     pub fx_settings: ultracomb::Settings,
     sampling_frequency: f32,
     editor_state: Arc<ViziaState>
@@ -60,6 +61,7 @@ impl Default for Ultracomb {
             params: Arc::new(UltracombParams::default()),
             ultracomb: Default::default(),
             crossover: Default::default(),
+            gain: Default::default(),
             fx_settings: Default::default(),
             sampling_frequency: Default::default(),
             editor_state: editor::default_state()
@@ -227,6 +229,10 @@ impl Plugin for Ultracomb {
             let mut cross: audio::three_way_crossover::ThreeWayCrossover = Default::default();
             cross.initialize(self.sampling_frequency);
             self.crossover.push(cross);
+
+            let mut gain: audio::gain_compensation::GainCompensation = Default::default();
+            gain.initialize(self.sampling_frequency);
+            self.gain.push(gain);
         }
         true
     }
@@ -256,14 +262,15 @@ impl Plugin for Ultracomb {
             let low_cut = self.params.low.smoothed.next();
             let high_cut = self.params.high.smoothed.next();
             //Loop for each channel
-            for ((sample,ultracomb),crossover) in sample_per_channel.iter_mut().zip(self.ultracomb.iter_mut()).zip(self.crossover.iter_mut()){
+            for (((sample, ultracomb), crossover), gain) in sample_per_channel.iter_mut().zip(self.ultracomb.iter_mut()).zip(self.crossover.iter_mut()).zip(self.gain.iter_mut()){
                 ultracomb.set_settings(self.fx_settings);
                 crossover.set_frequencies(low_cut, high_cut);
                 let bands = crossover.process(*sample);
-                let wet = ultracomb.process(bands.1);                
+                gain.write_pre(bands.1);
+                let mut wet = ultracomb.process(bands.1);
+                gain.write_post(wet);
+                wet *= gain.get_gain();
                 *sample = audio::utility::process_linear_dry_wet(bands.1,wet,strength) + bands.0 + bands.2;
-                //*sample = audio::utility::process_linear_dry_wet(bands.1,wet,strength);
-                // *sample = bands.0 + bands.2;
             }
         }
         ProcessStatus::Normal
