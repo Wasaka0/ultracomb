@@ -105,7 +105,6 @@ impl Default for UltracombParams {
                     factor: FloatRange::skew_factor(-1.5)
                 },
             )
-            .with_smoother(SmoothingStyle::Linear(100.0))
             .with_value_to_string(formatters::v2s_f32_rounded(3))
             .with_unit(" ms"),
             chaos: FloatParam::new(
@@ -117,7 +116,6 @@ impl Default for UltracombParams {
                     factor: FloatRange::skew_factor(-1.5)
                 },
             )
-            .with_smoother(SmoothingStyle::Linear(100.0))
             .with_value_to_string(formatters::v2s_f32_rounded(3))
             .with_unit(" ms"),
             speed: FloatParam::new(
