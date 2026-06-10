@@ -24,7 +24,7 @@ cargo xtask bundle ultracomb --release
 - [X] Audio processing
     - [x] Flanging
         - [x] Interpolation for delays between samples
-        - [ ] Apply interpolation only when modifying delay
+        - [x] Apply interpolation only when modifying delay
     - [x] Phasing
         - [x] All pass filter
         - [ ] Variable number of notches
@@ -36,9 +36,10 @@ cargo xtask bundle ultracomb --release
         - [x] Try other frequency shifting methods e.g. Hilbert Filter
             - [x] Tried without clear improvement right away
         - [x] Solve problems with DC, pre filtering might be enough
-    - [ ] Gain compensation
-        - [x] For Frequency shifter
-        - [ ] For Flanger/Phaser only
+    - [x] Gain compensation
+        - [x] ~~For Frequency shifter~~
+        - [ ] ~~For Flanger/Phaser only~~
+        - [x] Automatic gain compensation
     - [x] High-cut/Low-cut effect filtering (3 Band crossover filter)
     - [x] Effect multiplier
 - [ ] CD
