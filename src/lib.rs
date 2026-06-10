@@ -23,7 +23,7 @@ mod ultracomb;
 const STRENGTH_SCALE: f32 = 0.01;
 const MAX_FREQ_SHIFT: f32 = 30.0;
 const MIN_FILTER_FREQ: f32 = 30.0;
-const MAX_FILTER_FREQ: f32 = 20000.0;
+const MAX_FILTER_FREQ: f32 = 22000.0;
 
 struct Ultracomb {
     params: Arc<UltracombParams>,
@@ -33,6 +33,7 @@ struct Ultracomb {
     pub fx_settings: ultracomb::Settings,
     sampling_frequency: f32,
     phaser_max_freq: f32,
+    filter_max_freq: f32,
     editor_state: Arc<ViziaState>
 }
 
@@ -66,6 +67,7 @@ impl Default for Ultracomb {
             fx_settings: Default::default(),
             sampling_frequency: Default::default(),
             phaser_max_freq: Default::default(),
+            filter_max_freq: Default::default(),
             editor_state: editor::default_state()
         }
     }
@@ -220,6 +222,7 @@ impl Plugin for Ultracomb {
             .get() as usize;
         self.sampling_frequency = _buffer_config.sample_rate;
         self.phaser_max_freq = (self.sampling_frequency/2.0) - 1000.0;
+        self.filter_max_freq = self.sampling_frequency/2.0;
         //Create effect for each channel
         self.ultracomb = Vec::new();
         for _n in 0..num_output_channels{
@@ -265,7 +268,7 @@ impl Plugin for Ultracomb {
             //Loop for each channel
             for (((sample, ultracomb), crossover), gain) in sample_per_channel.iter_mut().zip(self.ultracomb.iter_mut()).zip(self.crossover.iter_mut()).zip(self.gain.iter_mut()){
                 ultracomb.set_settings(self.fx_settings);
-                crossover.set_frequencies(low_cut, high_cut);
+                crossover.set_frequencies(low_cut, high_cut.clamp(MIN_FILTER_FREQ,self.filter_max_freq));
                 let bands = crossover.process(*sample);
                 gain.write_pre(bands.1);
                 let mut wet = ultracomb.process(bands.1);
