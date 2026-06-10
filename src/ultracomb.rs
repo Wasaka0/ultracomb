@@ -79,7 +79,6 @@ impl EffectChain{
         //Configure elements
         self.wet_buffer.set_delay_ms(settings.delay);
         self.dry_buffer.set_delay_ms(settings.dry_delay);
-        self.freq_shifter.set_frequency(settings.freq_shift);
         self.freq_shifter.set_osc_samples(shift_osc_samples);
         self.shift_fade_ratio = shift_fade_ratio;
         self.all_pass.all_pass(self.sample_rate, settings.phaser_freq, settings.phaser_q);

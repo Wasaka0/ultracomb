@@ -23,7 +23,6 @@ const LUT_BASE_FREQ: f32 = 3.0;
 #[derive(Clone, Debug, Default)]
 pub struct FrequencyShifter{
     third_method_shift: ThirdMethod,
-    freq_shift: f32,
 }
 
 impl FrequencyShifter{
@@ -37,9 +36,6 @@ impl FrequencyShifter{
         self.third_method_shift.initialize();
     }
 
-    pub fn set_frequency(&mut self, frequency: f32){
-        self.freq_shift = frequency;
-    }
     pub fn set_osc_samples(&mut self, samples: ((f32,f32),(f32,f32))){
         self.third_method_shift.osc_samples = samples;
     }
