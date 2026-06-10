@@ -27,7 +27,8 @@ pub struct Ultracomb{
     freq_shift_fade_ratio: f32,
     freq_shift_fade_step: f32,
     settings: Settings,
-    sample: f32
+    sample: f32,
+    sample_rate: f32
 }
 
 #[derive(Copy, Clone, Debug, Default)]
@@ -46,18 +47,16 @@ struct EffectChain{
     wet_buffer: delay::Delay,
     dry_buffer: delay::Delay,
     freq_shifter: frequency_shifter::FrequencyShifter,
-    sample_rate: f32,
     shift_fade_ratio: f32
 }
 
 impl EffectChain{
     pub fn initialize(&mut self, sample_rate: f32){
-        self.sample_rate = sample_rate;
         //Initialize ring buffers
         self.wet_buffer = Default::default();
-        self.wet_buffer.resize(self.sample_rate, MAX_DELAY_TIME);
+        self.wet_buffer.resize(sample_rate, MAX_DELAY_TIME);
         self.dry_buffer = Default::default();
-        self.dry_buffer.resize(self.sample_rate, MAX_DELAY_TIME);
+        self.dry_buffer.resize(sample_rate, MAX_DELAY_TIME);
         // All-pass filters
         self.all_pass = Default::default();
         self.all_pass.initialize(30);
@@ -75,18 +74,15 @@ impl EffectChain{
         wet = 0.5 * (self.dry_buffer.process(sample) + wet);
         wet
     }
-    fn update_settings(&mut self, settings: Settings, shift_osc_samples: ((f32,f32),(f32,f32)), shift_fade_ratio: f32){
-        //Configure elements
-        self.wet_buffer.set_delay_ms(settings.delay);
-        self.dry_buffer.set_delay_ms(settings.dry_delay);
+    fn update_state(&mut self, shift_osc_samples: ((f32,f32),(f32,f32)), shift_fade_ratio: f32){
         self.freq_shifter.set_osc_samples(shift_osc_samples);
         self.shift_fade_ratio = shift_fade_ratio;
-        self.all_pass.all_pass(self.sample_rate, settings.phaser_freq, settings.phaser_q);
     }
 }
 
 impl Ultracomb{
     pub fn initialize(&mut self, sample_rate: f32){
+        self.sample_rate = sample_rate;
         for effect in &mut self.chain{
             effect.initialize(sample_rate);
         }
@@ -112,16 +108,34 @@ impl Ultracomb{
         // When chaos is not active the gain compensation attenuates the output. This allows to limit the amount the compensator amplifies which prevents blowing out when input is a sine signals.
         self.sample *= 1.0 + ((self.settings.freq_shift.abs().clamp(0.0, 13.0) * (self.settings.multiplier - 1.0) * (self.settings.dry_delay)) * 15.0);
         for i in 0..last_full_chain{
-            self.chain[i].update_settings(self.settings,shift_osc_samples, self.freq_shift_fade_ratio);
+            self.chain[i].update_state(shift_osc_samples, self.freq_shift_fade_ratio);
             self.sample = self.chain[i].process(self.sample);
         }
         if last_full_chain < MAX_STACK && next_chain_ratio > 0.0{
-            self.chain[last_full_chain].update_settings(self.settings,shift_osc_samples, self.freq_shift_fade_ratio);
+            self.chain[last_full_chain].update_state(shift_osc_samples, self.freq_shift_fade_ratio);
             self.sample = process_linear_dry_wet(self.sample,self.chain[last_full_chain].process(self.sample),next_chain_ratio)
         }
         self.sample
     }
     pub fn set_settings(&mut self, new_settings: Settings){
+        //Update delays when needed
+        if new_settings.delay != self.settings.delay {
+            for effect in self.chain.iter_mut() {
+                effect.wet_buffer.set_delay_ms(new_settings.delay );
+            }
+        }
+        if new_settings.dry_delay != self.settings.dry_delay {
+            for effect in self.chain.iter_mut() {
+                effect.dry_buffer.set_delay_ms(new_settings.dry_delay );
+            }
+        }
+        //Update phaser filter when needed
+        if new_settings.phaser_freq != self.settings.phaser_freq || new_settings.phaser_q != self.settings.phaser_q{
+            for effect in self.chain.iter_mut() {
+                effect.all_pass.all_pass(self.sample_rate, new_settings.phaser_freq, new_settings.phaser_q);
+            }
+        }
+
         self.settings = new_settings;
         self.freq_shift_osc.set_frequency(self.settings.freq_shift);
     }
