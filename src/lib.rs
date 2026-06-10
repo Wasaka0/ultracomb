@@ -32,6 +32,7 @@ struct Ultracomb {
     gain: Vec<audio::gain_compensation::GainCompensation>,
     pub fx_settings: ultracomb::Settings,
     sampling_frequency: f32,
+    phaser_max_freq: f32,
     editor_state: Arc<ViziaState>
 }
 
@@ -64,6 +65,7 @@ impl Default for Ultracomb {
             gain: Default::default(),
             fx_settings: Default::default(),
             sampling_frequency: Default::default(),
+            phaser_max_freq: Default::default(),
             editor_state: editor::default_state()
         }
     }
@@ -93,7 +95,7 @@ impl Default for UltracombParams {
                     factor: FloatRange::skew_factor(0.0)
                 },
             )
-            .with_smoother(SmoothingStyle::Linear(50.0))
+            .with_smoother(SmoothingStyle::Linear(100.0))
             .with_value_to_string(formatters::v2s_f32_rounded(2))
             .with_unit(" %"),
             flanging: FloatParam::new(
@@ -217,6 +219,7 @@ impl Plugin for Ultracomb {
             .expect("Plugin does not have a main output")
             .get() as usize;
         self.sampling_frequency = _buffer_config.sample_rate;
+        self.phaser_max_freq = (self.sampling_frequency/2.0) - 1000.0;
         //Create effect for each channel
         self.ultracomb = Vec::new();
         for _n in 0..num_output_channels{
@@ -252,8 +255,8 @@ impl Plugin for Ultracomb {
             self.fx_settings.dry_delay = self.params.chaos.smoothed.next();
             self.fx_settings.delay = self.params.flanging.smoothed.next();
             let phase = self.params.phasing.smoothed.next();
-            self.fx_settings.phaser_freq = if phase < 10.0 {20000.0 - 1000.0 * phase} else if phase < 30.0 { 10000.0 - (phase - 10.0) * 250.0} else if phase < 70.0 { 5000.0 - (phase - 30.0) * 100.0}  else {1000.0 - (phase - 70.0) * 30.0};
-            self.fx_settings.phaser_q = if phase < 10.0 {30.0 - 2.5 * phase} else if phase < 50.0 {5.0 - (phase - 10.0) * 0.075} else if phase < 70.0 { 2.0 - (phase - 50.0) * 0.05} else {1.0 - (phase - 70.0) * 0.0323};
+            self.fx_settings.phaser_freq = if phase < 10.0 {self.phaser_max_freq - (((self.phaser_max_freq - 10000.0) / 10.0) * phase)} else if phase < 30.0 { 10000.0 - (phase - 10.0) * 250.0} else if phase < 80.0 { 5000.0 - (phase - 30.0) * 70.0}  else {1500.0 - (phase - 80.0) * 25.0};
+            self.fx_settings.phaser_q = if phase < 10.0 {100.0 - 9.5 * phase} else if phase < 50.0 {5.0 - (phase - 10.0) * 0.075} else if phase < 70.0 { 2.0 - (phase - 50.0) * 0.05} else {1.0 - (phase - 70.0) * 0.02};
             let strength = self.params.strength.smoothed.next() * STRENGTH_SCALE;
             self.fx_settings.freq_shift = self.params.speed.smoothed.next();
             self.fx_settings.multiplier = self.params.multiplier.smoothed.next();
