@@ -109,12 +109,12 @@ impl Ultracomb{
         let last_full_chain = self.settings.multiplier.trunc() as usize;
         let next_chain_ratio = self.settings.multiplier.fract();
         let shift_osc_samples = self.freq_shift_osc.next();
+        // Amplify signal depending on frequency shift, multiplier and dry_delay (Chaos) to compensate level loss when Chaos is set together with this two parameters.
+        // When chaos is not active the gain compensation attenuates the output. This allows to limit the amount the compensator amplifies which prevents blowing out when input is a sine signals.
+        self.sample *= 1.0 + ((self.settings.freq_shift.abs().clamp(0.0, 13.0) * (self.settings.multiplier - 1.0) * (self.settings.dry_delay)) * 15.0);
         for i in 0..last_full_chain{
             self.chain[i].update_settings(self.settings,shift_osc_samples, self.freq_shift_fade_ratio);
             self.sample = self.chain[i].process(self.sample);
-            // Amplify signal depending on frequency shift and multiplier to compensate level loss when chaos is set together with this two parameters.
-            // When chaos is not active the gain compensation attenuates the output. This allows to limit the amount the compensator amplifies which prevents blowing out when input is a sine signals.
-            self.sample *= 1.0 + (self.settings.freq_shift.abs() / 300.0) * (self.settings.multiplier - 1.0 / 600.0);
         }
         if last_full_chain < MAX_STACK && next_chain_ratio > 0.0{
             self.chain[last_full_chain].update_settings(self.settings,shift_osc_samples, self.freq_shift_fade_ratio);

@@ -82,6 +82,6 @@ impl GainCompensation{
     }
 
     pub fn get_gain(&self) -> f32 {
-        ((self.pre.max - self.pre.min)/(self.post.max - self.post.min)).clamp(0.0, 10.0)
+        ((self.pre.max - self.pre.min)/(self.post.max - self.post.min)).clamp(0.0, 4.0)
     }
 }
