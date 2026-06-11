@@ -6,7 +6,7 @@ Ultracomb is a VST3/CLAP plugin that implements an audio effect chain described 
 The block diagram for the effect looks like this:
 ![Block diagram of the Ultracomb audio effect](img/Ultracomb-block-diagram.png)
 
-The phaser has 15 notches (all-pass filter of order 30)
+The phaser has 9 notches (all-pass filter of order 18)
 The frequency shifter is implemented using "The third method" discover by Donald k. Weaver.
 
 ## Download
