@@ -10,9 +10,9 @@ import math
 # Additionally it can plot its frequency response and group delay.
 
 # Filter parameters
-order = 16
-rp = 0.5 # Max pass-band ripple
-rs = 60 # Min attenuation in stop-band
+order = 8
+rp = 1.5 # Max pass-band ripple
+rs = 30 # Min attenuation in stop-band
 fs = 48000
 fc = fs/4
 # Display options
@@ -55,11 +55,11 @@ if plots_active:
     w, gd = signal.group_delay((b, a),fs=fs)
     plt.plot(w, gd)
     plt.title('Elliptic filter group dealy (rp='+str(rp)+' rs='+str(rs)+' fc='+str(fc)+' fs='+str(fs)+')')
-    plt.axvline(fc, color='green') # cutoff frequency
+    # plt.axvline(fc, color='green') # cutoff frequency
     plt.xlim(2,fs/2)
     if focus_on_fc:
         plt.title('Elliptic filter frequency response detail at fc (rp='+str(rp)+' rs='+str(rs)+' fc='+str(fc)+' fs='+str(fs)+')')
-        plt.axvline(fc, color='green') # cutoff frequency
+        # plt.axvline(fc, color='green') # cutoff frequency
         plt.xlim(fc - fc_disp_range,fc + fc_disp_range)
     plt.xlabel('Frequency [Hz]')
     plt.ylabel('Phase [rad]')

@@ -12,8 +12,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see https://www.gnu.org/licenses/.
 
-use nih_plug::prelude::*;
-use nih_plug_vizia::ViziaState;
+use nice_plug::prelude::*;
+use vizia_plug::ViziaState;
 use std::sync::Arc;
 
 mod editor;
@@ -299,5 +299,5 @@ impl Vst3Plugin for Ultracomb {
         &[Vst3SubCategory::Fx, Vst3SubCategory::Modulation];
 }
 
-nih_export_clap!(Ultracomb);
-nih_export_vst3!(Ultracomb);
+nice_export_clap!(Ultracomb);
+nice_export_vst3!(Ultracomb);
