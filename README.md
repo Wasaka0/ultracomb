@@ -51,7 +51,7 @@ cargo xtask bundle ultracomb --release
     - [x] Add version to artifact name
 - [x] GUI
     - [ ] Add knobs instead of sliders
-    - [ ] Maybe switch to vizia-plug which is more recently updated than nih_plug_vizia 
+    - [x] Maybe switch to vizia-plug which is more recently updated than nih_plug_vizia 
 - [ ] Plug-in parameter definition
 - [ ] Performance
     - [ ] Design benchmarks
