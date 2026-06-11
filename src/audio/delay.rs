@@ -14,6 +14,8 @@
 
 use nih_plug::debug::nih_debug_assert;
 
+const FADE_STEP: f32 = 0.0001;
+
 // A circular buffer that allows delayed read
 #[derive(Clone, Debug, Default)]
 pub struct Delay{
@@ -42,8 +44,8 @@ impl Delay {
     //Change the read index to the given delay in milliseconds
     pub fn set_delay_ms(&mut self, new_delay: f32){
         let delay_samples = new_delay * self.sample_rate * 0.001;
-        self.prev_sample_ratio = delay_samples.fract();
-        self.now_ratio = 1.0 - self.prev_sample_ratio;
+        self.prev_sample_ratio = 0.5;
+        self.now_ratio = 0.5;
         self.move_read_index(delay_samples.trunc() as i32);
     }
     //Calculates the read index from the desired delay in samples from the write index
@@ -73,8 +75,13 @@ impl Delay {
     
     /// Rerturn current delayed sample.
     fn next_sample(&mut self) -> f32 {
-        let result = self.now_ratio * self.ring_buffer[self.read_index] + self.prev_sample_ratio * self.last_read;
-        self.last_read = self.ring_buffer[self.read_index];
+        let mut result = self.ring_buffer[self.read_index];
+        if self.now_ratio < 1.0{
+            result = (self.ring_buffer[self.read_index] * self.now_ratio) + (self.prev_sample_ratio * self.last_read);
+            self.now_ratio += FADE_STEP;
+            self.prev_sample_ratio -= FADE_STEP;
+        } 
+        self.last_read = result;
         self.read_index = self.advance_index(self.read_index);
         result
     }
@@ -95,5 +102,7 @@ impl Delay {
         self.move_read_index(0);
         self.ring_buffer.fill(0.0);
         self.last_read = 0.0;
+        self.prev_sample_ratio = 0.0;
+        self.now_ratio = 1.0;
     }
 }

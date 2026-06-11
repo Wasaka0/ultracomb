@@ -14,7 +14,7 @@
 
 use std::f32::consts;
 
-// A biquad filter that provides multiple filter types 
+// A biquad filter using the transposed Direct Form 2 that provides multiple filter types 
 #[derive(Clone, Debug, Default)]
 pub struct BiquadFilter{
     coefficients: BiquadCoefficients,
@@ -43,30 +43,24 @@ impl BiquadCoefficients {
 // Samples that need to be recalled during filtering process
 #[derive(Clone, Debug, Default)]
 struct SampleStorage{
-    x1: f32,
-    x2: f32,
+    d1: f32,
+    d2: f32,
     y0: f32,
-    y1: f32,
-    y2: f32
 }
 impl SampleStorage {
     pub fn reset(&mut self){
-        self.x1 = 0.0;
-        self.x2 = 0.0;
+        self.d1 = 0.0;
+        self.d2 = 0.0;
         self.y0 = 0.0;
-        self.y1 = 0.0;
-        self.y2 = 0.0;
     }
 }
 
 impl BiquadFilter {
     //Process a single input sample returning the filter output
     pub fn process(&mut self, sample: f32) -> f32 {
-        self.samples.y0 = self.coefficients.b0 * sample + self.coefficients.b1 * self.samples.x1 + self.coefficients.b2 * self.samples.x2 - self.coefficients.a1 * self.samples.y1 - self.coefficients.a2 * self.samples.y2;
-        self.samples.x2 = self.samples.x1;
-        self.samples.x1 = sample;
-        self.samples.y2 = self.samples.y1;
-        self.samples.y1 = self.samples.y0;
+        self.samples.y0 = self.coefficients.b0 * sample + self.samples.d1;
+        self.samples.d1 = self.coefficients.b1 * sample - self.coefficients.a1 * self.samples.y0 + self.samples.d2;
+        self.samples.d2 = self.coefficients.b2 * sample - self.coefficients.a2 * self.samples.y0;
         self.samples.y0
     }
 
