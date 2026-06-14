@@ -1,10 +1,10 @@
 use nice_plug::prelude::{Editor};
 use vizia_plug::vizia::{prelude::*};
-use vizia_plug::widgets::*;
 use vizia_plug::{ create_vizia_editor, ViziaState, ViziaTheming};
 use std::sync::Arc;
 
 use crate::UltracombParams;
+use crate::custom_param_slider::CustomParamSlider;
 
 // Makes sense to also define this here, makes it a bit easier to keep track of
 pub(crate) fn default_state() -> Arc<ViziaState> {
@@ -37,25 +37,25 @@ pub(crate) fn create(
         HStack::new(cx, |cx|{
             VStack::new(cx, |cx| {
                 Label::new(cx, "Flanger");
-                ParamSlider::new(cx,&params.flanging);
+                CustomParamSlider::new(cx,&params.flanging);
                 Label::new(cx, "Dry Delay (Chaos)");
-                ParamSlider::new(cx, &params.chaos);
+                CustomParamSlider::new(cx, &params.chaos);
                 Label::new(cx, "Phaser");
-                ParamSlider::new(cx, &params.phasing);
+                CustomParamSlider::new(cx, &params.phasing);
                 Label::new(cx, "Speed");
-                ParamSlider::new(cx, &params.speed);
+                CustomParamSlider::new(cx, &params.speed);
             })
             .left(Stretch(1.0))
             .right(Stretch(1.0));
             VStack::new(cx, |cx| {
                 Label::new(cx, "Low-Cut");
-                ParamSlider::new(cx, &params.low);
+                CustomParamSlider::new(cx, &params.low);
                 Label::new(cx, "High-Cut");
-                ParamSlider::new(cx, &params.high);
+                CustomParamSlider::new(cx, &params.high);
                 Label::new(cx, "Dry/Wet");
-                ParamSlider::new(cx, &params.strength);
+                CustomParamSlider::new(cx, &params.strength);
                 Label::new(cx, "Multiplier");
-                ParamSlider::new(cx, &params.multiplier);
+                CustomParamSlider::new(cx, &params.multiplier);
             })
             .left(Stretch(1.0))
             .right(Stretch(1.0));

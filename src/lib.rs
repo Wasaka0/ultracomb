@@ -19,6 +19,7 @@ use std::sync::Arc;
 mod editor;
 mod audio;
 mod ultracomb;
+mod custom_param_slider;
 
 const STRENGTH_SCALE: f32 = 0.01;
 const MAX_FREQ_SHIFT: f32 = 30.0;

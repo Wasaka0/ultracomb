@@ -3,8 +3,8 @@
 use nice_plug::prelude::{Param, ParamPtr};
 use vizia::prelude::*;
 
-use super::param_base::ParamWidgetBase;
-use super::util::{self, ModifiersExt};
+use vizia_plug::widgets::param_base::ParamWidgetBase;
+use vizia_plug::widgets::util::{self, ModifiersExt};
 
 /// When shift+dragging a parameter, one pixel dragged corresponds to this much change in the
 /// normalized parameter.
@@ -15,7 +15,7 @@ const GRANULAR_DRAG_MULTIPLIER: f32 = 0.1;
 ///
 /// Under the signal-based API these three fields are held as [`SyncSignal`]s so the build
 /// closure (which needs to be `'static`) can subscribe to them without borrowing the slider.
-pub struct ParamSlider {
+pub struct CustomParamSlider {
     param_base: ParamWidgetBase,
 
     /// Set to `true` when the field gets Alt+Click'ed — replaces the label with a text box.
@@ -40,7 +40,7 @@ pub struct ParamSlider {
     scrolled_lines: f32,
 }
 
-/// How the [`ParamSlider`] should display its values. Set this using
+/// How the [`CustomParamSlider`] should display its values. Set this using
 /// [`ParamSliderExt::set_style`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ParamSliderStyle {
@@ -77,7 +77,7 @@ struct GranularDragStatus {
     starting_value: f32,
 }
 
-impl ParamSlider {
+impl CustomParamSlider {
     /// Creates a new [`ParamSlider`] for the given parameter. Pass a reference to the
     /// parameter directly — e.g. `ParamSlider::new(cx, &params.gain)`.
     ///
@@ -395,7 +395,7 @@ impl ParamSlider {
     }
 }
 
-impl View for ParamSlider {
+impl View for CustomParamSlider {
     fn element(&self) -> Option<&'static str> {
         Some("param-slider")
     }
@@ -585,17 +585,17 @@ pub trait ParamSliderExt {
     fn with_label(self, value: impl Into<String>) -> Self;
 }
 
-impl ParamSliderExt for Handle<'_, ParamSlider> {
+impl ParamSliderExt for Handle<'_, CustomParamSlider> {
     fn disable_scroll_wheel(self) -> Self {
-        self.modify(|param_slider: &mut ParamSlider| param_slider.use_scroll_wheel = false)
+        self.modify(|param_slider: &mut CustomParamSlider| param_slider.use_scroll_wheel = false)
     }
 
     fn set_style(self, style: ParamSliderStyle) -> Self {
-        self.modify(|param_slider: &mut ParamSlider| param_slider.style.set(style))
+        self.modify(|param_slider: &mut CustomParamSlider| param_slider.style.set(style))
     }
 
     fn with_label(self, value: impl Into<String>) -> Self {
-        self.modify(|param_slider: &mut ParamSlider| {
+        self.modify(|param_slider: &mut CustomParamSlider| {
             param_slider.label_override.set(Some(value.into()));
         })
     }

@@ -16,8 +16,9 @@ crate-type = ["cdylib"]
 [dependencies]
 # Remove the `assert_process_allocs` feature to allow allocations on the audio
 # thread in debug builds.
-nice-plug = { git = "https://codeberg.org/BillyDM/nice-plug.git", rev = "7e7f63049dc2250fa755bc45acb1badce8c7bd4c" }
-vizia_plug = { git = "https://github.com/vizia/vizia-plug.git", rev = "9d3f4175b5afad9b2e28c2d7a7faad25379ed4a2" }
+nice-plug = { version = "0.1.8", features = ["standalone"] }
+vizia_plug = { git = "https://github.com/vizia/vizia-plug.git", rev = "34812c0ba14c5df39621bab956c74e660220636b" }
+vizia = { git = "https://github.com/vizia/vizia", rev = "bbf98e643333d2533983f5866296036c34284018", default-features = false, features = ["baseview", "clipboard", "x11"] }
 bitflags = "2.13.0"
 
 [profile.release]
