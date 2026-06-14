@@ -465,9 +465,7 @@ impl View for CustomParamSlider {
                 meta.consume();
             }
             WindowEvent::MouseDoubleClick(MouseButton::Left)
-            | WindowEvent::MouseDown(MouseButton::Right)
-            | WindowEvent::MouseDoubleClick(MouseButton::Right)
-            | WindowEvent::MouseTripleClick(MouseButton::Right) => {
+            | WindowEvent::MouseDown(MouseButton::Right) => {
                 self.param_base.begin_set_parameter(cx);
                 self.param_base
                     .set_normalized_value(cx, self.param_base.default_normalized_value());
