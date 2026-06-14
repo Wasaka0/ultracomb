@@ -444,8 +444,6 @@ impl View for CustomParamSlider {
                     // textbox to move the cursor would also change the slider.
                     self.drag_active = true;
                     cx.capture();
-                    // Otherwise we don't get key-up events.
-                    cx.focus();
                     cx.set_active(true);
 
                     // Holding shift while clicking initiates granular editing without jumping.
