@@ -51,15 +51,7 @@ pub enum ParamSliderStyle {
     /// Always fill the bar starting from the left.
     FromLeft,
     /// Fill the bar from the mid point, regardless of where the default value lies.
-    FromMidPoint,
-    /// Show the current step instead of filling a portion of the bar. Useful for discrete
-    /// parameters. Set `even` to `true` to distribute the ticks evenly instead of following the
-    /// parameter's distribution — discrete parameters span only half the range near the edges,
-    /// which can make the display look odd.
-    CurrentStep { even: bool },
-    /// The same as `CurrentStep`, but overlays the labels over the steps instead of showing the
-    /// active value. Only useful for discrete parameters with two or maybe three possible values.
-    CurrentStepLabeled { even: bool },
+    FromMidPoint
 }
 
 enum ParamSliderEvent {
@@ -246,28 +238,6 @@ impl CustomParamSlider {
 
         // Either display the current value, or display all values over the parameter's steps.
         match (style, step_count) {
-            (ParamSliderStyle::CurrentStepLabeled { .. }, Some(step_count)) => {
-                HStack::new(cx, |cx| {
-                    // step_count + 1 possible values for a discrete parameter. Each preview
-                    // label is a static string derived from the parameter's own formatter at
-                    // its step position — it never changes at runtime, so we format it once
-                    // here rather than threading it through the reactive graph.
-                    for value in 0..step_count + 1 {
-                        let normalized_value = value as f32 / step_count as f32;
-                        let preview = param_base.normalized_value_to_string(normalized_value, true);
-
-                        Label::new(cx, preview)
-                            .class("value")
-                            .class("value--multiple")
-                            .alignment(Alignment::Center)
-                            .size(Stretch(1.0))
-                            .hoverable(false);
-                    }
-                })
-                .height(Stretch(1.0))
-                .width(Stretch(1.0))
-                .hoverable(false);
-            }
             _ => {
                 // Derived label text: either the `.with_label(...)` override when set, or the
                 // parameter's own formatted display value (before modulation). Built as a
@@ -323,28 +293,7 @@ impl CustomParamSlider {
                     if delta >= 1e-3 { delta } else { 0.0 },
                 )
             }
-            ParamSliderStyle::Centered | ParamSliderStyle::FromLeft => (0.0, current_value),
-            ParamSliderStyle::CurrentStep { even: true }
-            | ParamSliderStyle::CurrentStepLabeled { even: true }
-                if step_count.is_some() =>
-            {
-                // Assume the normalized value is distributed evenly across the range.
-                let step_count = step_count.unwrap() as f32;
-                let discrete_values = step_count + 1.0;
-                let previous_step = (current_value * step_count) / discrete_values;
-
-                (previous_step, discrete_values.recip())
-            }
-            ParamSliderStyle::CurrentStep { .. } | ParamSliderStyle::CurrentStepLabeled { .. } => {
-                let previous_step =
-                    unsafe { param_ptr.previous_normalized_step(current_value, false) };
-                let next_step = unsafe { param_ptr.next_normalized_step(current_value, false) };
-
-                (
-                    (previous_step + current_value) / 2.0,
-                    ((next_step - current_value) + (current_value - previous_step)) / 2.0,
-                )
-            }
+            ParamSliderStyle::Centered | ParamSliderStyle::FromLeft => (0.0, current_value)
         }
     }
 
@@ -358,10 +307,6 @@ impl CustomParamSlider {
         modulated_normalized: f32,
     ) -> (f32, f32) {
         match style {
-            // Don't show modulation for stepped parameters — visually meaningless.
-            ParamSliderStyle::CurrentStep { .. } | ParamSliderStyle::CurrentStepLabeled { .. } => {
-                (0.0, 0.0)
-            }
             ParamSliderStyle::Centered
             | ParamSliderStyle::FromMidPoint
             | ParamSliderStyle::FromLeft => (
@@ -369,29 +314,6 @@ impl CustomParamSlider {
                 modulated_normalized - unmodulated_normalized,
             ),
         }
-    }
-
-    /// `self.param_base.set_normalized_value()`, but resulting from a mouse drag. When using the
-    /// 'even' stepped slider styles this remaps the normalized range to match the fill-value
-    /// display. Still needs to be wrapped in a parameter automation gesture.
-    fn set_normalized_value_drag(&self, cx: &mut EventContext, normalized_value: f32) {
-        let normalized_value = match (self.style.get(), self.param_base.step_count()) {
-            (
-                ParamSliderStyle::CurrentStep { even: true }
-                | ParamSliderStyle::CurrentStepLabeled { even: true },
-                Some(step_count),
-            ) => {
-                // Remap the value range to the displayed range (each value occupies an equal
-                // area on the slider instead of the centers of those ranges being distributed
-                // over the entire `[0, 1]` range).
-                let discrete_values = step_count as f32 + 1.0;
-                let rounded_value = ((normalized_value * discrete_values) - 0.5).round();
-                rounded_value / step_count as f32
-            }
-            _ => normalized_value,
-        };
-
-        self.param_base.set_normalized_value(cx, normalized_value);
     }
 }
 
@@ -455,7 +377,7 @@ impl View for CustomParamSlider {
                         });
                     } else {
                         self.granular_drag_status = None;
-                        self.set_normalized_value_drag(
+                        self.param_base.set_normalized_value(
                             cx,
                             util::remap_current_entity_x_coordinate(cx, cx.mouse().cursor_x),
                         );
@@ -503,13 +425,13 @@ impl View for CustomParamSlider {
                             * GRANULAR_DRAG_MULTIPLIER)
                             * cx.scale_factor();
 
-                        self.set_normalized_value_drag(
+                        self.param_base.set_normalized_value(
                             cx,
                             util::remap_current_entity_x_coordinate(cx, start_x + delta_x),
                         );
                     } else {
                         self.granular_drag_status = None;
-                        self.set_normalized_value_drag(
+                        self.param_base.set_normalized_value(
                             cx,
                             util::remap_current_entity_x_coordinate(cx, *x),
                         );
