@@ -125,8 +125,10 @@ impl FreqShiftOsc{
     pub fn set_frequency(&mut self, frequency: f32){
         if frequency >= 0.0{
             self.second_osc.set_frequency(self.freq_static_osc + frequency);
+            self.first_osc.set_frequency(self.freq_static_osc);
         } else {
-            self.second_osc.set_frequency(self.freq_static_osc - frequency);
+            self.first_osc.set_frequency(self.freq_static_osc - frequency);
+            self.second_osc.set_frequency(self.freq_static_osc);
         }
     }
 }
