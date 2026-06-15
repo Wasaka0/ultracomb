@@ -25,12 +25,8 @@ pub struct CustomParamSlider {
     /// A specific label to use instead of displaying the parameter's value.
     label_override: SyncSignal<Option<String>>,
 
-    /// Set to `true` while we're dragging the parameter. Resetting the parameter or entering a
-    /// text value should not initiate a drag.
-    drag_active: bool,
-    /// Start coordinate and normalized value when holding down Shift while dragging for higher
-    /// precision dragging. `None` when granular dragging is not active.
-    granular_drag_status: Option<GranularDragStatus>,
+    /// Used to keep track necessary data during slider dragging. `None` when dragging is not active.
+    drag_status: Option<DragStatus>,
 
     // These fields are set through modifiers:
     /// Whether or not to listen to scroll events for changing the parameter's value in steps.
@@ -62,11 +58,14 @@ enum ParamSliderEvent {
 }
 
 #[derive(Debug, Clone, Copy)]
-struct GranularDragStatus {
-    /// The mouse's X-coordinate when the granular drag was started.
-    starting_x_coordinate: f32,
-    /// The normalized value when the granular drag was started.
+struct DragStatus {
+    /// The mouse's coordinates from the last MouseMove event.
+    last_cursor_coords: (f32,f32),
+    /// The normalized amount the value has changed since the drag started 
+    accumulated_change: f32,
+    /// The normalized value when the  drag was started.
     starting_value: f32,
+
 }
 
 impl CustomParamSlider {
@@ -95,10 +94,9 @@ impl CustomParamSlider {
             text_input_active,
             style,
             label_override,
-            drag_active: false,
-            granular_drag_status: None,
+            drag_status: None,
             use_scroll_wheel: true,
-            scrolled_lines: 0.0,
+            scrolled_lines: 0.0
         }
         .build(
             cx,
@@ -364,24 +362,14 @@ impl View for CustomParamSlider {
                     // The `!text_input_active` check shouldn't be needed, but the textbox
                     // doesn't consume the mouse-down event. Without this, clicking on the
                     // textbox to move the cursor would also change the slider.
-                    self.drag_active = true;
+                    self.drag_status = Some(DragStatus {
+                        last_cursor_coords: (cx.mouse().cursor_x, cx.mouse().cursor_y),
+                        accumulated_change: 0.0,
+                        starting_value: self.param_base.unmodulated_normalized_value()
+                    });
                     cx.capture();
                     cx.set_active(true);
-
-                    // Holding shift while clicking initiates granular editing without jumping.
                     self.param_base.begin_set_parameter(cx);
-                    if cx.modifiers().shift() {
-                        self.granular_drag_status = Some(GranularDragStatus {
-                            starting_x_coordinate: cx.mouse().cursor_x,
-                            starting_value: self.param_base.unmodulated_normalized_value(),
-                        });
-                    } else {
-                        self.granular_drag_status = None;
-                        self.param_base.set_normalized_value(
-                            cx,
-                            util::remap_current_entity_x_coordinate(cx, cx.mouse().cursor_x),
-                        );
-                    }
                 }
 
                 meta.consume();
@@ -396,8 +384,8 @@ impl View for CustomParamSlider {
                 meta.consume();
             }
             WindowEvent::MouseUp(MouseButton::Left) => {
-                if self.drag_active {
-                    self.drag_active = false;
+                if self.drag_status.is_some() {
+                    self.drag_status = None;
                     cx.release();
                     cx.set_active(false);
 
@@ -406,46 +394,23 @@ impl View for CustomParamSlider {
                     meta.consume();
                 }
             }
-            WindowEvent::MouseMove(x, _y) => {
-                if self.drag_active {
-                    // If shift is held, dragging is granular rather than absolute.
-                    if cx.modifiers().shift() {
-                        let granular_drag_status =
-                            *self
-                                .granular_drag_status
-                                .get_or_insert_with(|| GranularDragStatus {
-                                    starting_x_coordinate: *x,
-                                    starting_value: self.param_base.unmodulated_normalized_value(),
-                                });
-
-                        // Compensate for the DPI scale to keep the drag consistent.
-                        let start_x =
-                            util::remap_current_entity_x_t(cx, granular_drag_status.starting_value);
-                        let delta_x = ((*x - granular_drag_status.starting_x_coordinate)
-                            * GRANULAR_DRAG_MULTIPLIER)
-                            * cx.scale_factor();
-
-                        self.param_base.set_normalized_value(
-                            cx,
-                            util::remap_current_entity_x_coordinate(cx, start_x + delta_x),
-                        );
-                    } else {
-                        self.granular_drag_status = None;
-                        self.param_base.set_normalized_value(
-                            cx,
-                            util::remap_current_entity_x_coordinate(cx, *x),
-                        );
+            WindowEvent::MouseMove(x, y) => {
+                match self.drag_status {
+                    Some(mut status) => {
+                        // let mut delta = cx.mouse().delta().0 + cx.mouse().delta().1;
+                        let mut delta = x - status.last_cursor_coords.0;
+                        delta += status.last_cursor_coords.1 - y;
+                        delta /= 300.0;
+                        // If shift is held, dragging is granular rather than absolute.
+                        if cx.modifiers().shift() {
+                            delta *= 0.1;
+                        }
+                        status.accumulated_change += delta;
+                        self.param_base.set_normalized_value(cx,status.starting_value + status.accumulated_change);
+                        status.last_cursor_coords = (*x,*y);
+                        self.drag_status = Some(status);
                     }
-                }
-            }
-            WindowEvent::KeyUp(_, Some(Key::Shift)) => {
-                // If this happens mid-drag, snap back to the current screen position.
-                if self.drag_active && self.granular_drag_status.is_some() {
-                    self.granular_drag_status = None;
-                    self.param_base.set_normalized_value(
-                        cx,
-                        util::remap_current_entity_x_coordinate(cx, cx.mouse().cursor_x),
-                    );
+                    None =>{}
                 }
             }
             WindowEvent::MouseScroll(_scroll_x, scroll_y) if self.use_scroll_wheel => {
@@ -456,7 +421,7 @@ impl View for CustomParamSlider {
                     let use_finer_steps = cx.modifiers().shift();
 
                     // Scrolling while dragging needs to be taken into account here.
-                    if !self.drag_active {
+                    if !self.drag_status.is_some() {
                         self.param_base.begin_set_parameter(cx);
                     }
 
@@ -478,7 +443,7 @@ impl View for CustomParamSlider {
                         self.scrolled_lines += 1.0;
                     }
 
-                    if !self.drag_active {
+                    if !self.drag_status.is_some() {
                         self.param_base.end_set_parameter(cx);
                     }
                 }
