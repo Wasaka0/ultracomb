@@ -3607,7 +3607,7 @@ dependencies = [
 
 [[package]]
 name = "ultracomb"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "bitflags 2.13.0",
  "nice-plug",
