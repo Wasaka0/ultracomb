@@ -253,6 +253,12 @@ impl Plugin for Ultracomb {
         _aux: &mut AuxiliaryBuffers,
         _context: &mut impl ProcessContext<Self>,
     ) -> ProcessStatus {
+        // Sanitize input
+        for mut sample_per_channel in buffer.iter_samples() {
+            for sample in sample_per_channel.iter_mut(){
+                *sample = audio::utility::clean_sample(*sample);
+            }
+        }
         //Loop for each sample
         for mut sample_per_channel in buffer.iter_samples() {
             // Parameter smoothing happens per sample
@@ -276,6 +282,12 @@ impl Plugin for Ultracomb {
                 gain.write_post(wet);
                 wet *= gain.get_gain();
                 *sample = audio::utility::process_linear_dry_wet(bands.1,wet,strength) + bands.0 + bands.2;
+            }
+        }
+        // Sanitize output
+        for mut sample_per_channel in buffer.iter_samples() {
+            for sample in sample_per_channel.iter_mut(){
+                *sample = audio::utility::clean_sample(*sample);
             }
         }
         ProcessStatus::Normal
