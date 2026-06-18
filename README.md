@@ -2,6 +2,10 @@
 
 Ultracomb is a VST3/CLAP plugin that implements an audio effect chain described by the artist Au5 [here](https://www.youtube.com/watch?v=_SyB2WqKwP4).
 
+Here is a demo of the plugin's effect on pink noise and a saw wave:
+
+![Demo of the effect on pink noise and saw wave]([img/Ultracomb-block-diagram.png](https://github.com/user-attachments/assets/775d2be3-a313-4968-bf27-023168d98e05))
+
 ## Audio details
 The block diagram for the effect looks like this:
 ![Block diagram of the Ultracomb audio effect](img/Ultracomb-block-diagram.png)
